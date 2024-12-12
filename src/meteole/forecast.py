@@ -6,7 +6,6 @@ import shutil
 import tempfile
 from abc import abstractmethod
 from pathlib import Path
-from typing import Dict, List, Optional
 
 import pandas as pd
 import xarray as xr
@@ -59,7 +58,7 @@ class Forecast(MeteoFranceClient):
         self.precision = precision
         self._validate_parameters()
 
-        self.folderpath: Optional[Path] = None
+        self.folderpath: Path | None = None
         self.get_capabilities()
 
     def get_capabilities(self) -> pd.DataFrame:
@@ -111,7 +110,7 @@ class Forecast(MeteoFranceClient):
             features = [int(feature) for feature in features]
         return features
 
-    def get_coverage_description(self, coverage_id: str) -> Dict:
+    def get_coverage_description(self, coverage_id: str) -> dict:
         """This endpoint returns the available axis (times, heights) to properly query coverage
 
         TODO: other informations can be fetched from this endpoint, not yet implemented.
@@ -136,7 +135,7 @@ class Forecast(MeteoFranceClient):
 
     def get_coverages(
         self,
-        coverage_ids: List[str],
+        coverage_ids: list[str],
         lat: tuple = const.FRANCE_METRO_LATITUDES,
         long: tuple = const.FRANCE_METRO_LONGITUDES,
     ) -> pd.DataFrame:
@@ -159,8 +158,8 @@ class Forecast(MeteoFranceClient):
     def _get_coverage_id(
         self,
         indicator: str,
-        run: Optional[str] = None,
-        interval: Optional[str] = None,
+        run: str | None = None,
+        interval: str | None = None,
     ) -> str:
         """
         Get a coverage_id from `capabilities`.
@@ -234,9 +233,9 @@ class Forecast(MeteoFranceClient):
         indicator: str | None = None,
         lat: tuple = const.FRANCE_METRO_LATITUDES,
         long: tuple = const.FRANCE_METRO_LONGITUDES,
-        heights: List[int] | None = None,
-        pressures: List[int] | None = None,
-        forecast_horizons: List[int] | None = None,
+        heights: list[int] | None = None,
+        pressures: list[int] | None = None,
+        forecast_horizons: list[int] | None = None,
         run: str | None = None,
         interval: str | None = None,
         coverage_id: str = "",
@@ -288,8 +287,8 @@ class Forecast(MeteoFranceClient):
         return pd.concat(df_list, axis=0).reset_index(drop=True)
 
     def _raise_if_invalid_or_fetch_default(
-        self, param_name: str, inputs: List[int] | None, availables: List[int]
-    ) -> List[int]:
+        self, param_name: str, inputs: list[int] | None, availables: list[int]
+    ) -> list[int]:
         """
         Checks if the elements in `inputs` are in `availables` and raises a ValueError if not.
         If `inputs` is empty or None, uses the first element from `availables` as the default value.
@@ -345,7 +344,7 @@ class Forecast(MeteoFranceClient):
         """The list of instant indicators"""
         pass
 
-    def _get_capabilities(self) -> Dict:
+    def _get_capabilities(self) -> dict:
         """The Capabilities of the AROME/ARPEGE service."""
 
         url = f"{self.base_url}/{self.entry_point}/GetCapabilities"

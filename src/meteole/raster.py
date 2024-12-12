@@ -1,6 +1,4 @@
 """Functionnalities to deal with the raster data"""
-from typing import Optional
-
 import cartopy.crs as ccrs
 import matplotlib.pyplot as plt
 import rasterio
@@ -19,7 +17,7 @@ def plot_tiff_file(
     filename,
     data_type: str,
     unit: str,
-    title: Optional[str] = None,
+    title: str | None = None,
 ):
     """
     Plot a tiff file.

@@ -1,6 +1,5 @@
 import logging
 from io import BytesIO
-from typing import Tuple
 
 import matplotlib.image as mpimg
 import matplotlib.pyplot as plt
@@ -89,7 +88,7 @@ class Vigilance(client.MeteoFranceClient):
 
         return req.json()
 
-    def get_phenomenon(self) -> Tuple[pd.DataFrame, pd.DataFrame]:
+    def get_phenomenon(self) -> tuple[pd.DataFrame, pd.DataFrame]:
         """
         get risk prediction by phenomenon and by domain
         Returns:
