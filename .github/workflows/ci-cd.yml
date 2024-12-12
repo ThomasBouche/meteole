@@ -23,7 +23,7 @@
           - name: Set up Python version
             uses: actions/setup-python@v5
             with:
-              python-version: '3.x'
+              python-version: '3.11'
           - name: Install extra dependencies
             run: |
               python -m pip install --upgrade pip
