@@ -182,9 +182,7 @@ class Forecast(MeteoFranceClient):
         capabilities = self.capabilities[self.capabilities["indicator"] == indicator]
 
         if indicator not in self.indicators:
-            raise ValueError(
-                f"Unknown `indicator` - checkout `{self.model_name}.indicators` to have the full list."
-            )
+            raise ValueError(f"Unknown `indicator` - checkout `{self.model_name}.indicators` to have the full list.")
 
         if run is None:
             run = capabilities.iloc[0]["run"]
@@ -309,7 +307,9 @@ class Forecast(MeteoFranceClient):
                 if input_value not in availables:
                     raise ValueError(f"`{param_name}={inputs}` is invalid. Available {param_name}: {availables}")
         else:
-            inputs = availables[:1] or [-1]  # using [-1] make sure we have an iterable. Using None makes things too complicated with mypy...
+            inputs = availables[:1] or [
+                -1
+            ]  # using [-1] make sure we have an iterable. Using None makes things too complicated with mypy...
             if inputs[0] != -1:
                 logger.info(f"Using `{param_name}={inputs}`")
         return inputs

@@ -1,4 +1,5 @@
 """Functionnalities to deal with the raster data"""
+
 import cartopy.crs as ccrs
 import matplotlib.pyplot as plt
 import rasterio
