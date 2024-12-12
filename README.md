@@ -1,8 +1,30 @@
-# Meteole
+<p align="center">
+  <a href="https://maif.github.io/meteole"><img src="docs/pages/assets/img/svg/meteole-fond-clair.svg" alt="meteole" width="50%"></a>
+</p>
+<p align="center">
+    <em>Easy access to Météo-France weather models and data</em>
+</p>
+<p align="center">
+  <img src="https://github.com/MAIF/meteole/actions/workflows/ci-cd.yml/badge.svg?branch=main" alt="CI">
+  <img src="https://img.shields.io/badge/coverage-90%25-dark_green" alt="Coverage">
+  <img src="https://img.shields.io/pypi/v/meteole" alt="Versions">
+  <img src="https://img.shields.io/pypi/pyversions/meteole" alt="Python">
+  <img src="https://img.shields.io/pypi/dm/meteole" alt="Downloads">
+</p>
+
+---
+
+**Documentation:** [https://pages.github.com/MAIF/meteole/home](https://pages.github.com/MAIF/meteole/home)
+
+**Repository:** [https://github.com/MAIF/meteole](https://github.com/MAIF/meteole)
+
+---
+
+## Overview
 
 **Meteole** provides utilities to facilitate data retrieval from the Météo-France APIs using Python. It specifically supports the AROME and ARPEGE forecast models and vigilance bulletins.
 
-## 🛠 Installation
+### Installation
 
 ```python
 pip install meteole
