@@ -14,25 +14,47 @@ from meteole.const import (
     PARAMETER_ERROR_CODE,
     SPECIFIC_ERROR,
     SUCCESS_CODES,
+    FORBIDDEN_CODE,
 )
-from meteole.errors import MissingDataError, MissingParameterError
+from meteole.errors import MissingDataError, GenericMeteofranceApiError
 
 logger = logging.getLogger(__name__)
 
 
 class MeteoFranceClient:
-    """Handles the connection and token refreshment boilerplate"""
+    """
+    A client for interacting with the Meteo France API.
+
+    This class handles the connection setup and token refreshment required for
+    authenticating and making requests to the Meteo France API.
+
+    Attributes:
+        api_key (str | None): The API key for accessing the Meteo France API.
+        token (str | None): The authentication token for accessing the API.
+        application_id (str | None): The application ID used for identification.
+        verify (Path | None): The path to a file or directory of trusted CA certificates for SSL verification.
+    """
 
     def __init__(
         self,
         api_key: str | None = None,
         token: str | None = None,
         application_id: str | None = None,
+        verify: Path | None = None,
     ):
-        """Init the MeteoFranceClient object."""
+        """
+        Initializes the MeteoFranceClient object.
+
+        Args:
+            api_key (str | None): The API key for accessing the Meteo France API.
+            token (str | None): The authentication token for accessing the API.
+            application_id (str | None): The application ID used for identification.
+            verify (Path | None): The path to a file or directory of trusted CA certificates for SSL verification.
+        """
         self.api_key = api_key
         self.token = token
         self.application_id = application_id
+        self.verify = verify
 
         self.session = requests.Session()
         self.connect()
@@ -81,7 +103,7 @@ class MeteoFranceClient:
         token_entrypoint = "https://portail-api.meteofrance.fr/token"  # noqa: S105
         params = {"grant_type": "client_credentials"}
         header = {"Authorization": "Basic " + self.application_id}
-        res = requests.post(token_entrypoint, params=params, headers=header, timeout=(30, 3600))
+        res = requests.post(token_entrypoint, params=params, headers=header, timeout=(30, 3600), verify=self.verify)
         self.token = res.json()["access_token"]
 
         # save token to file
@@ -110,30 +132,26 @@ class MeteoFranceClient:
             the response of the request
         """
         logger.debug(f"GET {url}")
-        path_certif = str(Path(__file__).parents[0] / "utils/cacert.pem")
         attempt = 0
         while attempt < max_retries:
-            if os.path.isfile(path_certif):
-                res = self.session.get(url, params=params, verify=path_certif)
-            else:
-                res = self.session.get(url, params=params)
+            res = self.session.get(url, params=params, verify=self.verify)
+
             if self._token_expired(res):
                 logger.info("token expired, requesting a new one")
                 self.get_token()
                 self.connect()
-                if os.path.isfile(path_certif):
-                    res = self.session.get(url, params=params, verify=path_certif)
-                else:
-                    res = self.session.get(url, params=params)
+                res = self.session.get(url, params=params, verify=self.verify)
                 return res
 
             error_code = res.status_code
             if error_code in SUCCESS_CODES:
                 logger.debug("request successful")
                 return res
+            if error_code == FORBIDDEN_CODE:
+                raise GenericMeteofranceApiError(res.text)
             if error_code == PARAMETER_ERROR_CODE:
                 logger.error("parameter error")
-                raise MissingParameterError(res.text)
+                raise GenericMeteofranceApiError(res.text)
             if error_code == MISSING_DATA_CODE:
                 logger.error("missing data")
                 raise MissingDataError(res.text)

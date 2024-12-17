@@ -27,6 +27,7 @@ dependencies = [
     "requests>=2.31.0",
     "xarray>=2024.5.0",
     "xmltodict>=0.13.0",
+    "matplotlib>=3.8.4",
 ]
 
 [project.optional-dependencies]

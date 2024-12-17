@@ -1,7 +1,7 @@
 import xmltodict
 
 
-class MissingParameterError(Exception):
+class GenericMeteofranceApiError(Exception):
     """Exception raised errors in the input parameters where a required field is missing.
 
     Parameters
