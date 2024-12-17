@@ -1,13 +1,13 @@
-from meteole.arome import AromeForecast  # noqa
-from meteole.arpege import ArpegeForecast  # noqa
-from meteole.vigilance import Vigilance  # noqa
-
+import logging
 from importlib.metadata import version
 
+from meteole._arome import AromeForecast
+from meteole._arpege import ArpegeForecast
+from meteole._vigilance import Vigilance
+
+__all__ = ["AromeForecast", "ArpegeForecast", "Vigilance"]
+
 __version__ = version("meteole")
-
-
-import logging
 
 
 def setup_logger():

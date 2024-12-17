@@ -1,7 +1,6 @@
-"""Core module for the MeteoFranceClient package."""
+"""Core module for the MeteoFrance client package."""
 
 import logging
-import os
 import tempfile
 import time
 from pathlib import Path
@@ -10,13 +9,13 @@ import requests
 
 from meteole.const import (
     EXPIRED_TOKEN_CODE,
+    FORBIDDEN_CODE,
     MISSING_DATA_CODE,
     PARAMETER_ERROR_CODE,
     SPECIFIC_ERROR,
     SUCCESS_CODES,
-    FORBIDDEN_CODE,
 )
-from meteole.errors import MissingDataError, GenericMeteofranceApiError
+from meteole.errors import GenericMeteofranceApiError, MissingDataError
 
 logger = logging.getLogger(__name__)
 
@@ -77,7 +76,7 @@ class MeteoFranceClient:
             logger.debug("using token")
             self.session.headers.update({"Authorization": f"Bearer {self.token}"})
 
-    def get_token(self):
+    def get_token(self) -> str | None:
         """request a token from the meteo-France API.
 
         The token lasts 1 hour, and is used to authenticate the user.
@@ -85,31 +84,33 @@ class MeteoFranceClient:
         A local cache is used to avoid requesting a new token at each run of the script.
         """
         # cache the token for 1 hour
-        TOKEN_DURATION_S = 3600
-        local_tmp_cache = tempfile.TemporaryDirectory().name
-        cache_filename = Path(local_tmp_cache) / "token.txt"
-        cache_time_filename = Path(local_tmp_cache) / "token_time.txt"
+        TOKEN_DURATION_S: int = 3600
+        local_tmp_cache: str = tempfile.TemporaryDirectory().name
+        cache_filename: Path = Path(local_tmp_cache) / "token.txt"
+        cache_time_filename: Path = Path(local_tmp_cache) / "token_time.txt"
 
         # try to read  from cache
         if cache_filename.exists() and cache_time_filename.exists():
             logger.debug("reading token from cache")
             with open(cache_time_filename) as f:
-                cache_time = float(f.read())
+                cache_time: float = float(f.read())
             if cache_time >= (time.time() - TOKEN_DURATION_S):
                 with open(cache_filename) as f:
-                    token = f.read()
+                    token: str = f.read()
                 return token
 
-        token_entrypoint = "https://portail-api.meteofrance.fr/token"  # noqa: S105
-        params = {"grant_type": "client_credentials"}
-        header = {"Authorization": "Basic " + self.application_id}
-        res = requests.post(token_entrypoint, params=params, headers=header, timeout=(30, 3600), verify=self.verify)
+        token_entrypoint: str = "https://portail-api.meteofrance.fr/token"
+        params: dict[str, str] = {"grant_type": "client_credentials"}
+        header: dict[str, str] = {"Authorization": "Basic " + str(self.application_id)}
+        res: requests.Response = requests.post(
+            token_entrypoint, params=params, headers=header, timeout=(30, 3600), verify=str(self.verify)
+        )
         self.token = res.json()["access_token"]
 
         # save token to file
         Path(local_tmp_cache).mkdir(parents=True, exist_ok=True)
         with open(cache_filename, "w") as f:
-            f.write(self.token)
+            f.write(str(self.token))
         with open(cache_time_filename, "w") as f:
             f.write(str(time.time()))
         return self.token
