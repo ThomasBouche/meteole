@@ -34,13 +34,13 @@ For data usage, access the predicted phenomena to trigger modeling based on the 
 ```python
 from meteole import Vigilance
 
-# application_id: get it on Météo-France portal
+# application_id: obtain it on the Météo-France API portal
 client = Vigilance(application_id=APPLICATION_ID) 
 
 df_phenomenon, df_timelaps = client.get_phenomenon() 
 
 # Fetch vigilance bulletins
-textes_vigilance = client.get_textes_vigilance() 
+textes_vigilance = client.get_vigilance_bulletin() 
 
 # Display the vigilance vignette
 client.get_vignette() 

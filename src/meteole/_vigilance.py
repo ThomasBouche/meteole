@@ -35,29 +35,26 @@ class Vigilance(MeteoFranceClient):
         application_id: str | None = None,
     ):
         """
-        Init the Vigilance object.
-         Parameters
-        ----------
-        api_key : str | None, optional
-            The API Key, by default None
-        token : str | None, optional
-            The API Token, by default None
-        application_id : str | None, optional
-            The Application ID, by default None
-        Note
-        ----
-        See :class:`.MeteoFranceClient` for the parameters `api_key`, `token` and `application_id`.
+        Initializes the Vigilance object.
+
+        Args:
+            api_key (str | None, optional): The API key for authentication. Defaults to None.
+            token (str | None, optional): The API token for authentication. Defaults to None.
+            application_id (str | None, optional): The application ID for authentication. Defaults to None.
+
+        Notes:
+            See `MeteoFranceClient` for additional details on the parameters `api_key`, `token`,
+            and `application_id`.
         """
 
         super().__init__(api_key, token, application_id)
 
-    def get_textes_vigilance(self) -> dict:
+    def get_vigilance_bulletin(self) -> dict:
         """
-        Get bulletin de vigilance
+        Retrieve the vigilance bulletin.
 
         Returns:
-        --------
-        dict: a Dict with bulletin de vigilance
+            dict: a Dict representing the vigilance bulletin
         """
 
         url = self.base_url + self.version + "/textesvigilance/encours"
@@ -67,7 +64,7 @@ class Vigilance(MeteoFranceClient):
             return req.json()
         except MissingDataError as e:
             if "no matching blob" in e.message:
-                logger.warning("La vigilance en cours ne nécessite pas de publication")
+                logger.warning("Ongoing vigilance requires no publication")
             else:
                 logger.error(f"Unexpected error: {e}")
             return {}
@@ -75,13 +72,12 @@ class Vigilance(MeteoFranceClient):
             logger.error(f"Unexpected error: {e}")
             return {}
 
-    def get_carte_vigilance(self) -> dict:
+    def get_vigilance_map(self) -> dict:
         """
-        Get "carte" de Vigilance with risk prediction
+        Get the vigilance map with predicted risk displayed.
 
         Returns:
-        --------
-        dict: a Dict with risk prediction
+            dict: a Dict with the predicted risk.
         """
         url = self.base_url + self.version + "/cartevigilance/encours"
         logger.debug(f"GET {url}")
@@ -91,13 +87,13 @@ class Vigilance(MeteoFranceClient):
 
     def get_phenomenon(self) -> tuple[pd.DataFrame, pd.DataFrame]:
         """
-        get risk prediction by phenomenon and by domain
+        Get risk prediction by phenomenon and by domain.
+
         Returns:
-        --------
-        pd.DataFrame: a DataFrame with phenomenon by id
-        pd.DataFrame: a DataFrame with phenomenon by domain
+            pd.DataFrame: a DataFrame with phenomenon by id
+            pd.DataFrame: a DataFrame with phenomenon by domain
         """
-        df_carte = pd.DataFrame(self.get_carte_vigilance())
+        df_carte = pd.DataFrame(self.get_vigilance_map())
         periods_data = df_carte.loc["periods", "product"]
         df_periods = pd.json_normalize(periods_data)
 
@@ -123,7 +119,7 @@ class Vigilance(MeteoFranceClient):
 
     def get_vignette(self) -> None:
         """
-        Get png
+        Get png.
         """
         url = self.base_url + self.version + "/vignettenationale-J-et-J1/encours"
 

@@ -78,7 +78,7 @@ client = Vigilance(application_id=APPLICATION_ID)
 
 df_phenomenon, df_timelaps = client.get_phenomenon() # pour accéder aux phénomènes prévus
 
-textes_vigilance = client.get_textes_vigilance() # pour accéder aux bulletins de vigilance
+textes_vigilance = client.get_vigilance_bulletin() # pour accéder aux bulletins de vigilance
 
 client.get_vignette() # pour afficher les vignettes
 ```
@@ -87,3 +87,18 @@ client.get_vignette() # pour afficher les vignettes
 
 To have more documentation from MeteoFrance in Vigilance Bulletin :
 - [Meteo France Documentation](https://donneespubliques.meteofrance.fr/?fond=produit&id_produit=305&id_rubrique=50)
+
+## Contributing
+
+Contributions are *very* welcome!
+
+If you see an issue that you'd like to see fixed, the best way to make it happen is to help out by submitting a pull request implementing it.
+
+Refer to the [CONTRIBUTING.md](./CONTRIBUTING.md) file for more details about the workflow,
+and general hints on how to prepare your pull request. You can also ask for clarifications or guidance in GitHub issues directly.
+
+## License
+
+This project is Open Source and available under the Apache 2 License.
+
+[![Alt MAIF Logo](https://static.maif.fr/resources/img/logo-maif.svg)](https://www.maif.fr/)
