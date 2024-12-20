@@ -4,10 +4,12 @@ See :
 - https://portail-api.meteofrance.fr/web/fr/api/arpege
 """
 
-from meteole import const, forecast
+from typing import Any
+
+from meteole.clients import BaseClient, MeteoFranceClient
+from meteole.forecast import Forecast
 
 AVAILABLE_ARPEGE_TERRITORY = ["EUROPE", "GLOBE", "ATOURX", "EURAT"]
-RELATION_TERRITORY_TO_PREC_ARPEGE = {"EUROPE": 0.1, "GLOBE": 0.25, "ATOURX": 0.1, "EURAT": 0.05}
 
 ARPEGE_INSTANT_INDICATORS = [
     "GEOMETRIC_HEIGHT__GROUND_OR_WATER_SURFACE",
@@ -63,19 +65,25 @@ ARPEGE_OTHER_INDICATORS = [
 ]
 
 
-class ArpegeForecast(forecast.Forecast):
+class ArpegeForecast(Forecast):
     """Access the ARPEGE numerical forecast data."""
 
-    api_version = "1.0"
-    base_url = const.API_BASE_URL + "arpege/" + api_version
+    # Model constants
+    MODEL_NAME: str = "arpege"
+    RUN_FREQUENCY: int = 6
+    INDICATORS: list[str] = ARPEGE_INSTANT_INDICATORS + ARPEGE_OTHER_INDICATORS
+    INSTANT_INDICATORS: list[str] = ARPEGE_INSTANT_INDICATORS
+    BASE_ENTRY_POINT: str = "wcs/MF-NWP-GLOBAL-ARPEGE"
+    DEFAULT_TERRITORY: str = "EUROPE"
+    RELATION_TERRITORY_TO_PREC_ARPEGE: dict[str, float] = {"EUROPE": 0.1, "GLOBE": 0.25, "ATOURX": 0.1, "EURAT": 0.05}
+    CLIENT_CLASS: type[BaseClient] = MeteoFranceClient
 
     def __init__(
         self,
+        client: BaseClient | None = None,
+        *,
         territory: str = "EUROPE",
-        api_key: str | None = None,
-        token: str | None = None,
-        application_id: str | None = None,
-        cache_dir: str | None = None,
+        **kwargs: Any,
     ):
         """
         Initializes an ArpegeForecast object for accessing ARPEGE forecast data.
@@ -97,40 +105,13 @@ class ArpegeForecast(forecast.Forecast):
 
         """
         super().__init__(
-            api_key=api_key,
-            token=token,
+            client=client,
             territory=territory,
-            precision=RELATION_TERRITORY_TO_PREC_ARPEGE[territory],
-            application_id=application_id,
-            cache_dir=cache_dir,
+            precision=self.RELATION_TERRITORY_TO_PREC_ARPEGE[territory],
+            **kwargs,
         )
 
     def _validate_parameters(self):
         """Assert the parameters are valid."""
         if self.territory not in AVAILABLE_ARPEGE_TERRITORY:
             raise ValueError(f"The parameter precision must be in {AVAILABLE_ARPEGE_TERRITORY}")
-
-    @property
-    def model_name(self):
-        """Name of the model (lower case)"""
-        return "arpege"
-
-    @property
-    def run_frequency(self):
-        """Update frequency of the inference"""
-        return 6
-
-    @property
-    def entry_point(self):
-        """Entry point to ARPEGE service."""
-        return f"wcs/MF-NWP-GLOBAL-ARPEGE-{const.PRECISION_FLOAT_TO_STR[self.precision]}-{self.territory}-WCS"
-
-    @property
-    def indicators(self):
-        """List of all indicators (instant and non-instant)"""
-        return ARPEGE_INSTANT_INDICATORS + ARPEGE_OTHER_INDICATORS
-
-    @property
-    def instant_indicators(self):
-        """List of instant indicators"""
-        return ARPEGE_INSTANT_INDICATORS
