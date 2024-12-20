@@ -72,3 +72,6 @@ data/
 
 # mkdocs documentation
 */site
+
+# Local sample files
+sample.*

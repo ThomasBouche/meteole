@@ -81,7 +81,7 @@ class MeteoFranceClient(BaseClient):
         self._token = token
         self._api_key = api_key
         self._application_id = application_id
-        self._verify: str | bool = str(certs_path) if certs_path is not None else False
+        self._verify: str | None = str(certs_path) if certs_path is not None else None
 
         self._session = Session()
 
