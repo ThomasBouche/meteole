@@ -4,14 +4,17 @@ See :
 - https://portail-api.meteofrance.fr/web/fr/api/arome
 """
 
+from __future__ import annotations
+
 import logging
+from typing import final
 
 from meteole.clients import BaseClient, MeteoFranceClient
 from meteole.forecast import Forecast
 
 logger = logging.getLogger(__name__)
 
-AVAILABLE_AROME_TERRITORY = [
+AVAILABLE_AROME_TERRITORY: list[str] = [
     "FRANCE",
     "NCALED",
     "INDIEN",
@@ -20,7 +23,7 @@ AVAILABLE_AROME_TERRITORY = [
     "ANTIL",
 ]
 
-AROME_INSTANT_INDICATORS = [
+AROME_INSTANT_INDICATORS: list[str] = [
     "GEOMETRIC_HEIGHT__GROUND_OR_WATER_SURFACE",
     "BRIGHTNESS_TEMPERATURE__GROUND_OR_WATER_SURFACE",
     "CONVECTIVE_AVAILABLE_POTENTIAL_ENERGY__GROUND_OR_WATER_SURFACE",
@@ -39,13 +42,14 @@ AROME_INSTANT_INDICATORS = [
     "V_COMPONENT_OF_WIND__SPECIFIC_HEIGHT_LEVEL_ABOVE_GROUND",
 ]
 
-AROME_OTHER_INDICATORS = [
+AROME_OTHER_INDICATORS: list[str] = [
     "TOTAL_WATER_PRECIPITATION__GROUND_OR_WATER_SURFACE",
     "TOTAL_SNOW_PRECIPITATION__GROUND_OR_WATER_SURFACE",
     "TOTAL_PRECIPITATION__GROUND_OR_WATER_SURFACE",
 ]
 
 
+@final
 class AromeForecast(Forecast):
     """Access the AROME numerical forecast data."""
 

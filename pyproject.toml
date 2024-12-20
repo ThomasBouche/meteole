@@ -5,8 +5,8 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "meteole"
 version = "0.2.0"
-requires-python = ">3.9.0"
-description = "A Python client library for Méteo-France public API."
+requires-python = ">3.8.0"
+description = "A Python client library for forecast model APIs (e.g., Météo-France)."
 readme = "README.md"
 license = {text = "Apache-2.0"}
 authors = [
@@ -23,6 +23,7 @@ classifiers = [
     "Programming Language :: Python",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     # "Programming Language :: Python :: 3.12", no wheels 3.12 for dependency ecmwflibs
@@ -40,13 +41,13 @@ dependencies = [
 ]
 
 [project.urls]
-Homepage = "https://pages.github.com/MAIF/meteole/home"
-Documentation = "https://pages.github.com/MAIF/meteole/home"
+Homepage = "https://maif.github.io/meteole/"
+Documentation = "https://maif.github.io/meteole/home"
 Repository = "https://github.com/MAIF/meteole"
 
 [project.optional-dependencies]
-test = ["pytest", "coverage"]
-doc = ["mkdocs-material", "mkdocstrings[python]", "jinja2==3.0.3"]
+test = ["pytest", "coverage", "tox"]
+doc = ["mkdocs-material", "mkdocstrings[python]"]
 dev = ["mypy", "pre-commit", "ruff"]
 all = ["meteole[test,doc,dev]"]
 

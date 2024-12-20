@@ -1,6 +1,8 @@
+from __future__ import annotations
+
 import logging
 from io import BytesIO
-from typing import Any
+from typing import Any, final
 
 import matplotlib.image as mpimg
 import matplotlib.pyplot as plt
@@ -13,6 +15,7 @@ from meteole.errors import MissingDataError
 logger = logging.getLogger(__name__)
 
 
+@final
 class Vigilance:
     """Wrapper around the meteo-France API for the vigilance data.
     Ressources are:

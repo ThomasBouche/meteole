@@ -4,14 +4,16 @@ See :
 - https://portail-api.meteofrance.fr/web/fr/api/arpege
 """
 
-from typing import Any
+from __future__ import annotations
+
+from typing import Any, final
 
 from meteole.clients import BaseClient, MeteoFranceClient
 from meteole.forecast import Forecast
 
-AVAILABLE_ARPEGE_TERRITORY = ["EUROPE", "GLOBE", "ATOURX", "EURAT"]
+AVAILABLE_ARPEGE_TERRITORY: list[str] = ["EUROPE", "GLOBE", "ATOURX", "EURAT"]
 
-ARPEGE_INSTANT_INDICATORS = [
+ARPEGE_INSTANT_INDICATORS: list[str] = [
     "GEOMETRIC_HEIGHT__GROUND_OR_WATER_SURFACE",
     "BRIGHTNESS_TEMPERATURE__GROUND_OR_WATER_SURFACE",
     "CONVECTIVE_AVAILABLE_POTENTIAL_ENERGY__GROUND_OR_WATER_SURFACE",
@@ -57,7 +59,7 @@ ARPEGE_INSTANT_INDICATORS = [
     "GEOPOTENTIAL__ISOBARIC_SURFACE",
 ]
 
-ARPEGE_OTHER_INDICATORS = [
+ARPEGE_OTHER_INDICATORS: list[str] = [
     "TOTAL_WATER_PRECIPITATION__GROUND_OR_WATER_SURFACE",
     "TOTAL_CLOUD_COVER__GROUND_OR_WATER_SURFACE",
     "TOTAL_SNOW_PRECIPITATION__GROUND_OR_WATER_SURFACE",
@@ -65,6 +67,7 @@ ARPEGE_OTHER_INDICATORS = [
 ]
 
 
+@final
 class ArpegeForecast(Forecast):
     """Access the ARPEGE numerical forecast data."""
 
