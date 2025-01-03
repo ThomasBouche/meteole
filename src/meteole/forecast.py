@@ -4,9 +4,11 @@ import datetime as dt
 import glob
 import logging
 import os
+import re
 from abc import ABC, abstractmethod
+from functools import reduce
 from pathlib import Path
-from typing import Any
+from typing import Any, Dict, List, Optional, Tuple
 from warnings import warn
 
 import pandas as pd
@@ -152,7 +154,7 @@ class Forecast(ABC):
         if indicator:
             coverage_id = self._get_coverage_id(indicator, run, interval)
 
-        logger.debug(f"Using `coverage_id={coverage_id}`")
+        logger.info(f"Using `coverage_id={coverage_id}`")
 
         axis = self.get_coverage_description(coverage_id)
 
@@ -177,28 +179,6 @@ class Forecast(ABC):
         ]
 
         return pd.concat(df_list, axis=0).reset_index(drop=True)
-
-    def get_coverages(
-        self,
-        coverage_ids: list[str],
-        lat: tuple = FRANCE_METRO_LATITUDES,
-        long: tuple = FRANCE_METRO_LONGITUDES,
-    ) -> pd.DataFrame:
-        """
-        Convenient function to quickly fetch a list of indicators using defaults `heights` and `forecast_horizons`
-
-        For finer control over heights and forecast_horizons use :meth:`get_coverage`
-        """
-        coverages = [
-            self.get_coverage(
-                coverage_id,
-                lat,
-                long,
-            )
-            for coverage_id in coverage_ids
-        ]
-
-        return pd.concat(coverages, axis=0)
 
     def _build_capabilities(self) -> pd.DataFrame:
         "Returns the coverage dataframe containing the details of all available coverage_ids"
@@ -442,10 +422,32 @@ class Forecast(ABC):
         df.rename(
             columns={
                 "time": "run",
-                "heightAboveGround": "height",
-                "isobaricInhPa": "pressure",
                 "step": "forecast_horizon",
             },
+            inplace=True,
+        )
+
+        known_columns = {"latitude", "longitude", "run", "forecast_horizon", "heightAboveGround", "isobaricInhPa"}
+        indicator_column = (set(df.columns) - known_columns).pop()
+
+        if indicator_column == "unknown":
+            base_name = "".join([word[0] for word in coverage_id.split("__")[0].split("_")]).lower()
+        else:
+            base_name = re.sub(r"\d.*", "", indicator_column)
+
+        if "heightAboveGround" in df.columns:
+            suffix = f"_{int(df['heightAboveGround'].iloc[0])}m"
+        elif "isobaricInhPa" in df.columns:
+            suffix = f"_{int(df['isobaricInhPa'].iloc[0])}hpa"
+        else:
+            suffix = ""
+
+        new_indicator_column = f"{base_name}{suffix}"
+        df.rename(columns={indicator_column: new_indicator_column}, inplace=True)
+
+        df.drop(
+            columns=["isobaricInhPa", "heightAboveGround", "meanSea", "potentialVorticity"],
+            errors="ignore",
             inplace=True,
         )
 
@@ -540,3 +542,160 @@ class Forecast(ABC):
             features = feature_grid_axis[0]["gmlrgrid:GeneralGridAxis"]["gmlrgrid:coefficients"].split(" ")
             features = [int(feature) for feature in features]
         return features
+    
+    def get_combined_coverage(
+        self,
+        indicator_names: List[str],
+        runs: List[str],
+        heights: Optional[List[int]] = None,
+        pressures: Optional[List[int]] = None,
+        intervals: Optional[List[str]] = None,
+        lat: tuple = FRANCE_METRO_LATITUDES,
+        long: tuple = FRANCE_METRO_LONGITUDES,
+        forecast_horizons: List[int] | None = None,
+    ) -> pd.DataFrame:
+        """
+        Get a combined DataFrame of coverage data for multiple coverage_ids with different runs.
+        Parameters:
+        indicator_names (List[str]): List of indicator names.
+        runs (List[str]): List of runs for each indicator. Format "YYYY-MM-DDTHH:MM:SSZ".
+        heights (List[int]): List of heights in meters.
+        pressures (List[int]): pressures in hPa
+        intervals (Optional[List[str]]): List of aggregation periods. Must be None for instant indicators, otherwise raises. Defaults to P1D for time-aggregated indicators like TOTAL_PRECIPITATION.
+        lat (tuple): Minimum and maximum latitude.
+        long (tuple): Minimum and maximum longitude.
+        forecast_horizons (list): list of integers, representing the forecast horizon in hours
+        Returns:
+        pd.DataFrame: Combined DataFrame with coverage data for all coverage_ids.
+        Raises:
+        ValueError: If the length of heights does not match the length of indicator_names.
+        """
+        if len(runs) != len(set(runs)):
+            raise ValueError("The run in 'runs' must be different.")
+
+        if heights is not None:
+            if len(heights) != len(indicator_names):
+                raise ValueError(
+                    "The length of heights must match the length of indicator_names. If you want multiple heights for a single indicator, you need to create multiple entries in indicator_names."
+                )
+        else:
+            heights = []
+        if pressures is not None:
+            if len(pressures) != len(indicator_names):
+                raise ValueError(
+                    "The length of pressures must match the length of indicator_names. If you want multiple pressures for a single indicator, you need to create multiple entries in indicator_names."
+                )
+        else:
+            pressures = []
+
+        if intervals and len(intervals) != len(indicator_names):
+            raise ValueError("The length of intervals must match the length of indicator_names if provided.")
+
+        coverage_ids_by_run: Dict[str, List[Tuple[str, Optional[int], Optional[int]]]] = dict()
+
+        for run in runs:
+            if run not in coverage_ids_by_run:
+                coverage_ids_by_run[run] = []
+            for i, indicator in enumerate(indicator_names):
+                height_value: Optional[int] = heights[i] if heights != [] else None
+                pressure_value: Optional[int] = pressures[i] if pressures != [] else None
+                coverage_id: str = self._get_coverage_id(indicator, run, intervals[i] if intervals else None)
+                coverage_ids_by_run[run].append((coverage_id, height_value, pressure_value))
+
+            if forecast_horizons is None:
+                list_coverage_id = [cid for cid, _, _ in coverage_ids_by_run[run]]
+                forecast_horizons = [self.find_common_forecast_horizons(list_coverage_id)[0]]
+                logger.info(f"Using common forecast_horizons `forecast_horizons={forecast_horizons}`.")
+
+        # Check forecast_horizons is valid for all indicators
+        if forecast_horizons is not None:
+            coverage_ids = [cid for run_coverage in coverage_ids_by_run.values() for cid, _, _ in run_coverage]
+            invalid_coverage_ids = self.validate_forecast_horizons(coverage_ids, forecast_horizons)
+            if invalid_coverage_ids:
+                raise ValueError(f"{forecast_horizons} are not valid for this coverage_ids : {invalid_coverage_ids}")
+
+        coverages_by_run = {}
+
+        for run, coverage_ids in coverage_ids_by_run.items():
+            coverages = [
+                self.get_coverage(
+                    coverage_id=coverage_id,
+                    lat=lat,
+                    long=long,
+                    heights=[height] if height is not None else [],
+                    pressures=[pressure] if pressure is not None else [],
+                    forecast_horizons=forecast_horizons,
+                )
+                for coverage_id, height, pressure in coverage_ids
+            ]
+            coverages_by_run[run] = reduce(
+                lambda left, right: pd.merge(
+                    left,
+                    right,
+                    on=["latitude", "longitude", "run", "forecast_horizon"],
+                    how="inner",
+                    validate="one_to_one",
+                ),
+                coverages,
+            )
+
+        final_df = pd.concat(coverages_by_run.values(), axis=0).reset_index(drop=True)
+
+        return final_df
+
+    def get_forecast_horizons(self, coverage_ids: List[str]) -> List[List[int]]:
+        """
+        Retrieve the times for each coverage_id.
+        Parameters:
+        coverage_ids (List[str]): List of coverage IDs.
+        Returns:
+        List[List[int]]: List of times for each coverage ID.
+        """
+        indicator_times = []
+        for coverage_id in coverage_ids:
+            times = self.get_coverage_description(coverage_id)["forecast_horizons"]
+            indicator_times.append(times)
+        return indicator_times
+
+    def find_common_forecast_horizons(
+        self,
+        list_coverage_id: List[str],
+    ) -> List[int]:
+        """
+        Find common forecast_horizons among coverage IDs.
+        indicator_names (List[str]): List of indicator names.
+        run (Optional[str]): Identifies the model inference. Defaults to latest if None. Format "YYYY-MM-DDTHH:MM:SSZ".
+        intervals (Optional[List[str]]): List of aggregation periods. Must be None for instant indicators, otherwise raises. Defaults to P1D for time-aggregated indicators like TOTAL_PRECIPITATION.
+        Returns:
+        List[int]: Common forecast_horizons
+        """
+        indicator_forecast_horizons = self.get_forecast_horizons(list_coverage_id)
+
+        common_forecast_horizons = indicator_forecast_horizons[0]
+        for times in indicator_forecast_horizons[1:]:
+            common_forecast_horizons = [time for time in common_forecast_horizons if time in times]
+
+        all_times = []
+        for times in indicator_forecast_horizons:
+            all_times.extend(times)
+
+        return sorted(common_forecast_horizons)
+
+    def validate_forecast_horizons(self, coverage_ids: List[str], forecast_horizons: List[int]) -> List[str]:
+        """
+        Validate forecast_horizons for a list of coverage IDs.
+        Parameters:
+        coverage_ids (List[str]): List of coverage IDs.
+        forecast_horizons (List[int]): List of time forecasts to validate.
+        Returns:
+        List[str]: List of invalid coverage IDs.
+        """
+        indicator_forecast_horizons = self.get_forecast_horizons(coverage_ids)
+
+        invalid_coverage_ids = [
+            coverage_id
+            for coverage_id, times in zip(coverage_ids, indicator_forecast_horizons)
+            if not set(forecast_horizons).issubset(times)
+        ]
+
+        return invalid_coverage_ids
