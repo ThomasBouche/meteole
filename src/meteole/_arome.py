@@ -55,7 +55,6 @@ class AromeForecast(Forecast):
 
     # Model constants
     MODEL_NAME: str = "arome"
-    RUN_FREQUENCY: int = 3
     INDICATORS: list[str] = AROME_INSTANT_INDICATORS + AROME_OTHER_INDICATORS
     INSTANT_INDICATORS: list[str] = AROME_INSTANT_INDICATORS
     BASE_ENTRY_POINT: str = "wcs/MF-NWP-HIGHRES-AROME"

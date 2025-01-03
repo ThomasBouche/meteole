@@ -73,7 +73,6 @@ class ArpegeForecast(Forecast):
 
     # Model constants
     MODEL_NAME: str = "arpege"
-    RUN_FREQUENCY: int = 6
     INDICATORS: list[str] = ARPEGE_INSTANT_INDICATORS + ARPEGE_OTHER_INDICATORS
     INSTANT_INDICATORS: list[str] = ARPEGE_INSTANT_INDICATORS
     BASE_ENTRY_POINT: str = "wcs/MF-NWP-GLOBAL-ARPEGE"

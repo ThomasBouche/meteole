@@ -49,20 +49,20 @@ The flagship weather forecasting models of Météo-France are accessible via the
 ```python
 from meteole import AromeForecast
 
-arome_client = AromeForecast(application_id=APPLICATION_ID)  # APPLICATION_ID found on portail.meteo-france.Fr
+arome_forecast = AromeForecast(application_id=APPLICATION_ID)  # APPLICATION_ID found on portail.meteo-france.Fr
 
-# let's look at the latest wind gusts
+# Let's look at the latest wind gusts
 indicator = 'V_COMPONENT_OF_WIND_GUST__SPECIFIC_HEIGHT_LEVEL_ABOVE_GROUND'
 
-# or check any other indicator in the list
-print(arome_client.indicators)
+# Or check any other indicator in the list
+print(arome_forecast.INDICATORS)
 
-# get the latest MeteoFrance forecasts concerning this indicator
-# all default parameters are printed to make sure you are in control
-df_arome = arome_client.get_coverage(indicator)
+# Get the latest MeteoFrance forecasts concerning this indicator
+# (All default parameters are printed to make sure you are in control)
+df_arome = arome_forecast.get_coverage(indicator)
 
 # default height doesn't suit you? change it easily
-df_arome = arome_client.get_coverage(indicator, height=10)
+df_arome = arome_forecast.get_coverage(indicator, height=10)
 ```
 
 ### ⚠️ VIGILANCE METEO FRANCE
@@ -74,13 +74,13 @@ For data usage, access the predicted phenomena to trigger modeling based on the 
 ```python
 from meteole import Vigilance
 
-client = Vigilance(application_id=APPLICATION_ID)
+vigi = Vigilance(application_id=APPLICATION_ID)
 
-df_phenomenon, df_timelaps = client.get_phenomenon() # pour accéder aux phénomènes prévus
+df_phenomenon, df_timelaps = vigi.get_phenomenon()
 
-textes_vigilance = client.get_vigilance_bulletin() # pour accéder aux bulletins de vigilance
+textes_vigilance = vigi.get_bulletin()
 
-client.get_vignette() # pour afficher les vignettes
+vigi.get_vignette()
 ```
 
 <img src="docs/pages/assets/img/png/vignette_exemple.png" width="600" height="300" alt="vignette de vigilance">

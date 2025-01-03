@@ -7,6 +7,7 @@ import os
 from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import Any
+from warnings import warn
 
 import pandas as pd
 import xarray as xr
@@ -37,7 +38,6 @@ class Forecast(ABC):
 
     # Model
     MODEL_NAME: str = "Defined in subclass"
-    RUN_FREQUENCY: int = 0
     BASE_ENTRY_POINT: str = "Defined in subclass"
     INDICATORS: list[str] = []
     INSTANT_INDICATORS: list[str] = []
@@ -80,6 +80,12 @@ class Forecast(ABC):
     @property
     def indicators(self) -> pd.DataFrame:
         """TODO"""
+        warn(
+            "The 'indicators' attribute is deprecated, it will be removed soon. "
+            "Use 'INDICATORS' instead (class constant).",
+            DeprecationWarning,
+            stacklevel=2,
+        )
         return self.INDICATORS
 
     @abstractmethod
