@@ -3,11 +3,11 @@
 }
 .md-typeset .admonition.beta,
 .md-typeset details.beta {
-  border-color: #CF363B;
+  border-color: #afcb37;
 }
 .md-typeset .beta > .admonition-title,
 .md-typeset .beta > summary {
-  background-color:  #CF363B;
+  background-color:  #afcb37;
 }
 .md-typeset .beta > .admonition-title::before,
 .md-typeset .beta > summary::before {

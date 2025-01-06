@@ -64,7 +64,7 @@ markdown_extensions:
     use_pygments: true
     linenums: true
   pymdownx.inlinehilite:
-  pymdownx.snippets:   
+  pymdownx.snippets:
   pymdownx.superfences:
     custom_fences:
     - name: mermaid
@@ -74,11 +74,13 @@ plugins:
   - mkdocstrings
   - search
 nav:
-  - Home: 
+  - Home:
     - Welcome: home.md
     - Why use Meteole?: why.md
     - Installation: installation.md
   - User Guide:
     - How to: how_to.md
+  - Advanced User Guide:
+    - Coverages: coverage_parameters.md
 extra_css:
   - assets/css/mkdocs_extra.css
