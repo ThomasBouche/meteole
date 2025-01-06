@@ -1,4 +1,4 @@
-Weather forecasts from Météo-France APIs are based on key parameters that vary from indicator to indicator, which can make them complex to use.
+Weather forecasts from Météo-France APIs are based on key parameters that vary from indicator to indicator, which makes them complex to use.
 
 Understanding coverages is a must to have a comprehensive usage of Météo-France forecasting models like AROME or ARPEGE.
 
@@ -15,7 +15,7 @@ It contains several information in a single string:
 - SPECIFIC_HEIGHT_LEVEL_ABOVE_GROUND: Specifies that the measurement is taken at a particular height above the ground.
 - 2024-01-16T09.00.00Z: Represents the date and time of the measurement, in ISO 8601 format (January 16, 2024, at 09:00 UTC).
 
-if you want to display valid coverage_id, you can use `get_capabilities`:
+if you want to display all valid coverage_ids, you can use `get_capabilities`:
 
 ```python
 from meteole import AromeForecast
@@ -38,7 +38,7 @@ When no interval is specified, it means coverage returns a single datapoint inst
 ## Others parameters
 ### Forecast_horizons
 The time of day to which the prediction corresponds must be specified. For example, for a run of 12:00, in 1 hour's time, we have the weather indicator prediction of 13:00.
-The `get_coverage method` takes as parameter the list of forecast hours, named `forecast_horizons`.
+The `get_coverage method` takes as (optional) parameter the list of desired forecast hours, named `forecast_horizons`.
 
 To get the list of available `forecast_horizons`, use the function `get_coverage_description` as described in the example below.
 
