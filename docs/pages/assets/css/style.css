@@ -4,11 +4,11 @@ body {
 }
 
 .otoColor {
-  background-color: #2596be;
+  background-color: #afcb37;
 }
 
 a {
-  color: #2596be;
+  color: #afcb37;
   text-decoration: underline;
 }
 
@@ -62,7 +62,7 @@ a:hover {
 }
 
 .titleOnLine li:nth-child(even) {
-  color: #2596be;
+  color: #afcb37;
 }
 
 h1 {
@@ -144,7 +144,7 @@ h2 {
   height: 100px;
   width: 100px;
   position: relative;
-  border: 3px solid #2596be;
+  border: 3px solid #afcb37;
   border-radius: 50%;
   margin: auto;
   margin-top: 50px;
@@ -152,7 +152,7 @@ h2 {
 
 .inner-circle {
   position: absolute;
-  background: #2596be;
+  background: #afcb37;
   border-radius: 50%;
   height: 90px;
   width: 90px;
@@ -171,7 +171,7 @@ h2 {
 }
 
 .sidebar {
-  background: linear-gradient(90deg, #2596be 50%, #2E3031 50%);
+  background: linear-gradient(90deg, #afcb37 50%, #2E3031 50%);
   position: fixed;
   top: 0;
   bottom: 0;
@@ -250,14 +250,14 @@ h2 {
     flex-direction: column;
   }
   .sidebar {
-    background: linear-gradient(180deg, #2596be 50%, #2E3031 50%);
+    background: linear-gradient(180deg, #afcb37 50%, #2E3031 50%);
     position: inherit;
   }
   .footer-contentN2 {
     margin-left: 0px;
     margin-top: 20px;
     width: 100%;
-    background-color: #2596be;
+    background-color: #afcb37;
   }
   .intro {
     text-align: left;
