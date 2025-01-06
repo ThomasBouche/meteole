@@ -1,18 +1,22 @@
+from __future__ import annotations
+
 import logging
 from io import BytesIO
+from typing import Any, final
 
 import matplotlib.image as mpimg
 import matplotlib.pyplot as plt
 import pandas as pd
+from requests import Response
 
-from meteole import const
-from meteole.client import MeteoFranceClient
+from meteole.clients import BaseClient, MeteoFranceClient
 from meteole.errors import MissingDataError
 
 logger = logging.getLogger(__name__)
 
 
-class Vigilance(MeteoFranceClient):
+@final
+class Vigilance:
     """Wrapper around the meteo-France API for the vigilance data.
     Ressources are:
     - textesvigilance
@@ -22,34 +26,37 @@ class Vigilance(MeteoFranceClient):
     -------------
     See:
     - https://portail-api.meteofrance.fr/web/fr/api/DonneesPubliquesVigilance
-    - https://donneespubliques.meteofrance.fr/client/document/descriptiftechnique_vigilancemetropole_donneespubliques_v4_20230911_307.pdf
+    - https://donneespubliques.meteofrance.fr/client/document/descriptiftechnique_vigilancemetropole_
+        donneespubliques_v4_20230911_307.pdf
     """
 
-    base_url = const.API_BASE_URL + "DPVigilance/"
-    version = "v1"
+    API_VERSION: str = "v1"
+    VIGILANCE_BASE_PATH: str = "DPVigilance/"
+    PHENOMENO_IDS: dict[str, str] = {
+        "1": "wind",
+        "2": "rain",
+        "3": "storm",
+        "4": "flood",
+        "5": "snow_ice",
+        "6": "heat_wave",
+        "7": "extreme_cold",
+        "8": "avalanches",
+        "9": "waves_submergence",
+    }
 
     def __init__(
         self,
-        api_key: str | None = None,
-        token: str | None = None,
-        application_id: str | None = None,
-    ):
-        """
-        Initializes the Vigilance object.
+        client: BaseClient | None = None,
+        **kwargs: Any,
+    ) -> None:
+        """TODO"""
+        if client is not None:
+            self._client = client
+        else:
+            # Try to instantiate it (can be user friendly)
+            self._client = MeteoFranceClient(**kwargs)
 
-        Args:
-            api_key (str | None, optional): The API key for authentication. Defaults to None.
-            token (str | None, optional): The API token for authentication. Defaults to None.
-            application_id (str | None, optional): The application ID for authentication. Defaults to None.
-
-        Notes:
-            See `MeteoFranceClient` for additional details on the parameters `api_key`, `token`,
-            and `application_id`.
-        """
-
-        super().__init__(api_key, token, application_id)
-
-    def get_vigilance_bulletin(self) -> dict:
+    def get_bulletin(self) -> dict[str, Any]:
         """
         Retrieve the vigilance bulletin.
 
@@ -57,11 +64,13 @@ class Vigilance(MeteoFranceClient):
             dict: a Dict representing the vigilance bulletin
         """
 
-        url = self.base_url + self.version + "/textesvigilance/encours"
-        logger.debug(f"GET {url}")
+        path: str = self.VIGILANCE_BASE_PATH + self.API_VERSION + "/textesvigilance/encours"
+        logger.debug(f"GET {path}")
+
         try:
-            req = self._get_request(url)
-            return req.json()
+            resp: Response = self._client.get(path)
+            return resp.json()
+
         except MissingDataError as e:
             if "no matching blob" in e.message:
                 logger.warning("Ongoing vigilance requires no publication")
@@ -72,18 +81,19 @@ class Vigilance(MeteoFranceClient):
             logger.error(f"Unexpected error: {e}")
             return {}
 
-    def get_vigilance_map(self) -> dict:
+    def get_map(self) -> dict[str, Any]:
         """
         Get the vigilance map with predicted risk displayed.
 
         Returns:
             dict: a Dict with the predicted risk.
         """
-        url = self.base_url + self.version + "/cartevigilance/encours"
-        logger.debug(f"GET {url}")
-        req = self._get_request(url)
+        path: str = self.VIGILANCE_BASE_PATH + self.API_VERSION + "/cartevigilance/encours"
+        logger.debug(f"GET {path}")
 
-        return req.json()
+        resp: Response = self._client.get(path)
+
+        return resp.json()
 
     def get_phenomenon(self) -> tuple[pd.DataFrame, pd.DataFrame]:
         """
@@ -93,7 +103,7 @@ class Vigilance(MeteoFranceClient):
             pd.DataFrame: a DataFrame with phenomenon by id
             pd.DataFrame: a DataFrame with phenomenon by domain
         """
-        df_carte = pd.DataFrame(self.get_vigilance_map())
+        df_carte = pd.DataFrame(self.get_map())
         periods_data = df_carte.loc["periods", "product"]
         df_periods = pd.json_normalize(periods_data)
 
@@ -106,7 +116,7 @@ class Vigilance(MeteoFranceClient):
         df_phenomenon_j1["echeance"] = "J1"
 
         df_phenomenon = pd.concat([df_phenomenon_j, df_phenomenon_j1]).reset_index(drop=True)
-        df_phenomenon["phenomenon_libelle"] = df_phenomenon["phenomenon_id"].map(const.dict_phenomenon_id)
+        df_phenomenon["phenomenon_libelle"] = df_phenomenon["phenomenon_id"].map(self.PHENOMENO_IDS)
 
         df_timelaps_j = pd.json_normalize(df_j["timelaps.domain_ids"].explode())
         df_timelaps_j1 = pd.json_normalize(df_j1["timelaps.domain_ids"].explode())
@@ -121,21 +131,23 @@ class Vigilance(MeteoFranceClient):
         """
         Get png.
         """
-        url = self.base_url + self.version + "/vignettenationale-J-et-J1/encours"
+        path: str = self.VIGILANCE_BASE_PATH + self.API_VERSION + "/vignettenationale-J-et-J1/encours"
 
-        logger.debug(f"GET {url}")
-        req = self._get_request(url)
+        logger.debug(f"GET {path}")
+        resp: Response = self._client.get(path)
 
-        if req.status_code == 200:
-            filename = req.headers.get("content-disposition").split("filename=")[1]
-            filename = filename.strip('"')
+        if resp.status_code == 200:
+            content: str | None = resp.headers.get("content-disposition")
+            if content is not None:
+                filename: str = content.split("filename=")[1]
+                filename = filename.strip('"')
 
             with open(filename, "wb") as f:
-                f.write(req.content)
+                f.write(resp.content)
 
-            img = mpimg.imread(BytesIO(req.content), format="png")
+            img = mpimg.imread(BytesIO(resp.content), format="png")
             plt.imshow(img)
             plt.axis("off")
             plt.show()
         else:
-            req.raise_for_status()
+            resp.raise_for_status()

@@ -4,13 +4,17 @@ See :
 - https://portail-api.meteofrance.fr/web/fr/api/arome
 """
 
-import logging
+from __future__ import annotations
 
-from meteole import const, forecast
+import logging
+from typing import final
+
+from meteole.clients import BaseClient, MeteoFranceClient
+from meteole.forecast import Forecast
 
 logger = logging.getLogger(__name__)
 
-AVAILABLE_AROME_TERRITORY = [
+AVAILABLE_AROME_TERRITORY: list[str] = [
     "FRANCE",
     "NCALED",
     "INDIEN",
@@ -19,7 +23,7 @@ AVAILABLE_AROME_TERRITORY = [
     "ANTIL",
 ]
 
-AROME_INSTANT_INDICATORS = [
+AROME_INSTANT_INDICATORS: list[str] = [
     "GEOMETRIC_HEIGHT__GROUND_OR_WATER_SURFACE",
     "BRIGHTNESS_TEMPERATURE__GROUND_OR_WATER_SURFACE",
     "CONVECTIVE_AVAILABLE_POTENTIAL_ENERGY__GROUND_OR_WATER_SURFACE",
@@ -38,47 +42,25 @@ AROME_INSTANT_INDICATORS = [
     "V_COMPONENT_OF_WIND__SPECIFIC_HEIGHT_LEVEL_ABOVE_GROUND",
 ]
 
-AROME_OTHER_INDICATORS = [
+AROME_OTHER_INDICATORS: list[str] = [
     "TOTAL_WATER_PRECIPITATION__GROUND_OR_WATER_SURFACE",
     "TOTAL_SNOW_PRECIPITATION__GROUND_OR_WATER_SURFACE",
     "TOTAL_PRECIPITATION__GROUND_OR_WATER_SURFACE",
 ]
 
 
-class AromeForecast(forecast.Forecast):
+@final
+class AromeForecast(Forecast):
     """Access the AROME numerical forecast data."""
 
-    api_version = "1.0"
-    base_url = const.API_BASE_URL + "arome/" + api_version
-
-    def __init__(
-        self,
-        api_key: str | None = None,
-        territory: str = "FRANCE",
-        precision: float = 0.01,
-        token: str | None = None,
-        application_id: str | None = None,
-        cache_dir: str | None = None,
-    ):
-        """
-        Initializes an AromeForecast object for accessing AROME forecast data.
-
-        Args:
-            api_key (str | None, optional): The API key for authentication. Defaults to None.
-            territory (str, optional): The AROME territory to fetch. Defaults to "FRANCE".
-            precision (float, optional): The resolution of the AROME model. Supported values are
-                `0.01` (high resolution) and `0.025` (lower resolution). Defaults to 0.01.
-            token (str | None, optional): The API token for authentication. Defaults to None.
-            application_id (str | None, optional): The application ID for authentication. Defaults to None.
-            cache_dir (str | None, optional): The path to the caching directory. Defaults to None.
-                If not provided, the cache directory is set to "/tmp/cache".
-
-        Notes:
-            - See `MeteoFranceClient` for additional details on the parameters `api_key`, `token`,
-              and `application_id`.
-            - Available territories are listed in the `AVAILABLE_TERRITORY` constant.
-        """
-        super().__init__(api_key, token, territory, precision, application_id, cache_dir)
+    # Model constants
+    MODEL_NAME: str = "arome"
+    INDICATORS: list[str] = AROME_INSTANT_INDICATORS + AROME_OTHER_INDICATORS
+    INSTANT_INDICATORS: list[str] = AROME_INSTANT_INDICATORS
+    BASE_ENTRY_POINT: str = "wcs/MF-NWP-HIGHRES-AROME"
+    DEFAULT_TERRITORY: str = "FRANCE"
+    DEFAULT_PRECISION: float = 0.01
+    CLIENT_CLASS: type[BaseClient] = MeteoFranceClient
 
     def _validate_parameters(self):
         """Assert the parameters are valid."""
@@ -86,28 +68,3 @@ class AromeForecast(forecast.Forecast):
             raise ValueError("Parameter `precision` must be in (0.01, 0.025). It is inferred from argument `territory`")
         if self.territory not in AVAILABLE_AROME_TERRITORY:
             raise ValueError(f"Parameter `territory` must be in {AVAILABLE_AROME_TERRITORY}")
-
-    @property
-    def run_frequency(self):
-        """Update frequency of the inference"""
-        return 3
-
-    @property
-    def model_name(self):
-        """Name of the model (lower case)"""
-        return "arome"
-
-    @property
-    def entry_point(self):
-        """The entry point to AROME service."""
-        return f"wcs/MF-NWP-HIGHRES-AROME-{const.PRECISION_FLOAT_TO_STR[self.precision]}-{self.territory}-WCS"
-
-    @property
-    def indicators(self):
-        """List of all indicators (instant and non-instant)"""
-        return AROME_INSTANT_INDICATORS + AROME_OTHER_INDICATORS
-
-    @property
-    def instant_indicators(self):
-        """List of instant indicators"""
-        return AROME_INSTANT_INDICATORS

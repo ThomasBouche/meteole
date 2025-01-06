@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import xmltodict
 
 
@@ -8,7 +10,7 @@ class GenericMeteofranceApiError(Exception):
         message (str): Human-readable string descipting the exceptetion.
         description (str): More detailed description of the error."""
 
-    def init(self, text: str):
+    def init(self, text: str) -> None:
         """Initialize the exception with an error message parsed from an XML
         string.
 
@@ -28,7 +30,7 @@ class GenericMeteofranceApiError(Exception):
 class MissingDataError(Exception):
     """Exception raised errors in the input data is missing"""
 
-    def init(self, text: str):
+    def init(self, text: str) -> None:
         """Initialize the exception with an error message parsed from an XML
         string.
 

@@ -1,25 +1,26 @@
+from __future__ import annotations
+
 import datetime as dt
 import glob
 import logging
 import os
-import shutil
-import tempfile
 from abc import ABC, abstractmethod
 from pathlib import Path
+from typing import Any
+from warnings import warn
 
 import pandas as pd
 import xarray as xr
 import xmltodict
 
-from meteole import const
-from meteole.client import MeteoFranceClient
+from meteole.clients import BaseClient
 from meteole.errors import MissingDataError
 
 logger = logging.getLogger(__name__)
 
 
-class Forecast(ABC, MeteoFranceClient):
-    """
+class Forecast(ABC):
+    """(Abstract class)
     Provides a unified interface to query AROME and ARPEGE endpoints
 
     Attributes
@@ -28,87 +29,73 @@ class Forecast(ABC, MeteoFranceClient):
         coverage dataframe containing the details of all available coverage_ids
     """
 
-    api_version = "1.0"
-    base_url = const.API_BASE_URL
+    # Class constants
+    # Global
+    API_VERSION: str = "1.0"
+    PRECISION_FLOAT_TO_STR: dict[float, str] = {0.25: "025", 0.1: "01", 0.05: "005", 0.01: "001", 0.025: "0025"}
+    FRANCE_METRO_LONGITUDES = (-5.1413, 9.5602)
+    FRANCE_METRO_LATITUDES = (41.33356, 51.0889)
+
+    # Model
+    MODEL_NAME: str = "Defined in subclass"
+    BASE_ENTRY_POINT: str = "Defined in subclass"
+    INDICATORS: list[str] = []
+    INSTANT_INDICATORS: list[str] = []
+    DEFAULT_TERRITORY: str = "FRANCE"
+    DEFAULT_PRECISION: float = 0.01
+    CLIENT_CLASS: type[BaseClient]
 
     def __init__(
         self,
-        api_key: str | None = None,
-        token: str | None = None,
-        territory: str = "FRANCE",
-        precision: float = 0.01,
-        application_id: str | None = None,
-        cache_dir: str | None = None,
+        client: BaseClient | None = None,
+        *,
+        territory: str = DEFAULT_TERRITORY,
+        precision: float = DEFAULT_PRECISION,
+        **kwargs: Any,
     ):
         """Init the Forecast object."""
-        super().__init__(
-            api_key=api_key,
-            application_id=application_id,
-            token=token,
-        )
-
-        if cache_dir is None:
-            initial_cache_dir = tempfile.TemporaryDirectory().name
-        else:
-            initial_cache_dir = cache_dir
-
-        self.cache_dir = Path(initial_cache_dir)
-
         self.territory = territory  # "FRANCE", "ANTIL", or others (see API doc)
         self.precision = precision
         self._validate_parameters()
 
-        self.folderpath: Path | None = None
-        self.get_capabilities()
+        self._capabilities: pd.DataFrame | None = None
+        self._entry_point: str = (
+            f"{self.BASE_ENTRY_POINT}-{self.PRECISION_FLOAT_TO_STR[self.precision]}-{self.territory}-WCS"
+        )
+        self._model_base_path = self.MODEL_NAME + "/" + self.API_VERSION
+
+        if client is not None:
+            self._client = client
+        else:
+            # Try to instantiate it (can be user friendly)
+            self._client = self.CLIENT_CLASS(**kwargs)
+
+    @property
+    def capabilities(self) -> pd.DataFrame:
+        """TODO"""
+        if self._capabilities is None:
+            self._capabilities = self._build_capabilities()
+        return self._capabilities
+
+    @property
+    def indicators(self) -> pd.DataFrame:
+        """TODO"""
+        warn(
+            "The 'indicators' attribute is deprecated, it will be removed soon. "
+            "Use 'INDICATORS' instead (class constant).",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        return self.INDICATORS
+
+    @abstractmethod
+    def _validate_parameters(self):
+        """Assert parameters are valid."""
+        pass
 
     def get_capabilities(self) -> pd.DataFrame:
         "Returns the coverage dataframe containing the details of all available coverage_ids"
-
-        logger.info("Fetching all available coverages...")
-
-        capabilities = self._get_capabilities()
-        df_capabilities = pd.DataFrame(capabilities["wcs:Capabilities"]["wcs:Contents"]["wcs:CoverageSummary"])
-        df_capabilities = df_capabilities.rename(
-            columns={
-                "wcs:CoverageId": "id",
-                "ows:Title": "title",
-                "wcs:CoverageSubtype": "subtype",
-            }
-        )
-        df_capabilities["indicator"] = [coverage_id.split("___")[0] for coverage_id in df_capabilities["id"]]
-        df_capabilities["run"] = [
-            coverage_id.split("___")[1].split("Z")[0] + "Z" for coverage_id in df_capabilities["id"]
-        ]
-        df_capabilities["interval"] = [
-            coverage_id.split("___")[1].split("Z")[1].strip("_") for coverage_id in df_capabilities["id"]
-        ]
-        self.capabilities = df_capabilities
-
-        nb_indicators = len(df_capabilities["indicator"].unique())
-        nb_coverage_ids = df_capabilities.shape[0]
-        runs = df_capabilities["run"].unique()
-
-        logger.info(
-            f"\n"
-            f"\t Successfully fetched {nb_coverage_ids} coverages,\n"
-            f"\t representing {nb_indicators} different indicators,\n"
-            f"\t across the last {len(runs)} runs (from {runs.min()} to {runs.max()}).\n"
-            f"\n"
-            f"\t Default run for `get_coverage`: {runs.max()})"
-        )
-
-        return df_capabilities
-
-    @staticmethod
-    def _get_available_feature(grid_axis, feature_name):
-        features = []
-        feature_grid_axis = [
-            ax for ax in grid_axis if ax["gmlrgrid:GeneralGridAxis"]["gmlrgrid:gridAxesSpanned"] == feature_name
-        ]
-        if feature_grid_axis:
-            features = feature_grid_axis[0]["gmlrgrid:GeneralGridAxis"]["gmlrgrid:coefficients"].split(" ")
-            features = [int(feature) for feature in features]
-        return features
+        return self.capabilities
 
     def get_coverage_description(self, coverage_id: str) -> dict:
         """This endpoint returns the available axis (times, heights) to properly query coverage
@@ -119,7 +106,7 @@ class Forecast(ABC, MeteoFranceClient):
             coverage_id (str): use :meth:`get_capabilities()` to list all available coverage_id
         """
 
-        # get coverage description
+        # Get coverage description
         description = self._get_coverage_description(coverage_id)
         grid_axis = description["wcs:CoverageDescriptions"]["wcs:CoverageDescription"]["gml:domainSet"][
             "gmlrgrid:ReferenceableGridByVectors"
@@ -133,107 +120,11 @@ class Forecast(ABC, MeteoFranceClient):
             "pressures": self.__class__._get_available_feature(grid_axis, "pressure"),
         }
 
-    def get_coverages(
-        self,
-        coverage_ids: list[str],
-        lat: tuple = const.FRANCE_METRO_LATITUDES,
-        long: tuple = const.FRANCE_METRO_LONGITUDES,
-    ) -> pd.DataFrame:
-        """
-        Convenient function to quickly fetch a list of indicators using defaults `heights` and `forecast_horizons`
-
-        For finer control over heights and forecast_horizons use :meth:`get_coverage`
-        """
-        coverages = [
-            self.get_coverage(
-                coverage_id,
-                lat,
-                long,
-            )
-            for coverage_id in coverage_ids
-        ]
-
-        return pd.concat(coverages, axis=0)
-
-    def _get_coverage_id(
-        self,
-        indicator: str,
-        run: str | None = None,
-        interval: str | None = None,
-    ) -> str:
-        """
-        Retrieves a `coverage_id` from the capabilities based on the provided parameters.
-
-        Args:
-            indicator (str): The indicator to retrieve. This parameter is required.
-            run (str | None, optional): The model inference timestamp. If None, defaults to the latest available run.
-                Expected format: "YYYY-MM-DDTHH:MM:SSZ". Defaults to None.
-            interval (str | None, optional): The aggregation period. Must be None for instant indicators;
-                raises an error if specified. Defaults to "P1D" for time-aggregated indicators such as
-                TOTAL_PRECIPITATION.
-
-        Returns:
-            str: The `coverage_id` corresponding to the given parameters.
-
-        Raises:
-            ValueError: If `indicator` is missing or invalid.
-            ValueError: If `interval` is invalid or required but missing.
-        """
-        if not hasattr(self, "capabilities"):
-            self.get_capabilities()
-
-        capabilities = self.capabilities[self.capabilities["indicator"] == indicator]
-
-        if indicator not in self.indicators:
-            raise ValueError(f"Unknown `indicator` - checkout `{self.model_name}.indicators` to have the full list.")
-
-        if run is None:
-            run = capabilities.iloc[0]["run"]
-            logger.info(f"Using latest `run={run}`.")
-
-        try:
-            dt.datetime.strptime(run, "%Y-%m-%dT%H.%M.%SZ")
-        except ValueError as exc:
-            raise ValueError(f"Run '{run}' is invalid. Expected format 'YYYY-MM-DDTHH.MM.SSZ'") from exc
-
-        valid_runs = capabilities["run"].unique().tolist()
-        if run not in valid_runs:
-            raise ValueError(f"Run '{run}' is invalid. Valid runs : {valid_runs}")
-
-        # handle interval
-        valid_intervals = capabilities["interval"].unique().tolist()
-
-        if indicator in self.instant_indicators:
-            if interval is None:
-                # no interval is expected for instant indicators
-                pass
-            else:
-                raise ValueError(
-                    f"interval={interval} is invalid. No interval is expected (=set to None) for instant indicator `{indicator}`."
-                )
-        else:
-            if interval is None:
-                interval = "P1D"
-                logger.info(
-                    f"`interval=None` is invalid  for non-instant indicators. Using default `interval={interval}`"
-                )
-            elif interval not in valid_intervals:
-                raise ValueError(
-                    f"interval={interval} is invalid  for non-instant indicators. `{indicator}`. Use valid intervals: {valid_intervals}"
-                )
-
-        coverage_id = f"{indicator}___{run}"
-
-        if interval is not None:
-            coverage_id += f"_{interval}"
-
-        return coverage_id
-
     def get_coverage(
         self,
         indicator: str | None = None,
-        lat: tuple = const.FRANCE_METRO_LATITUDES,
-        long: tuple = const.FRANCE_METRO_LONGITUDES,
+        lat: tuple = FRANCE_METRO_LATITUDES,
+        long: tuple = FRANCE_METRO_LONGITUDES,
         heights: list[int] | None = None,
         pressures: list[int] | None = None,
         forecast_horizons: list[int] | None = None,
@@ -287,6 +178,138 @@ class Forecast(ABC, MeteoFranceClient):
 
         return pd.concat(df_list, axis=0).reset_index(drop=True)
 
+    def get_coverages(
+        self,
+        coverage_ids: list[str],
+        lat: tuple = FRANCE_METRO_LATITUDES,
+        long: tuple = FRANCE_METRO_LONGITUDES,
+    ) -> pd.DataFrame:
+        """
+        Convenient function to quickly fetch a list of indicators using defaults `heights` and `forecast_horizons`
+
+        For finer control over heights and forecast_horizons use :meth:`get_coverage`
+        """
+        coverages = [
+            self.get_coverage(
+                coverage_id,
+                lat,
+                long,
+            )
+            for coverage_id in coverage_ids
+        ]
+
+        return pd.concat(coverages, axis=0)
+
+    def _build_capabilities(self) -> pd.DataFrame:
+        "Returns the coverage dataframe containing the details of all available coverage_ids"
+
+        logger.info("Fetching all available coverages...")
+
+        capabilities = self._fetch_capabilities()
+        df_capabilities = pd.DataFrame(capabilities["wcs:Capabilities"]["wcs:Contents"]["wcs:CoverageSummary"])
+        df_capabilities = df_capabilities.rename(
+            columns={
+                "wcs:CoverageId": "id",
+                "ows:Title": "title",
+                "wcs:CoverageSubtype": "subtype",
+            }
+        )
+        df_capabilities["indicator"] = [coverage_id.split("___")[0] for coverage_id in df_capabilities["id"]]
+        df_capabilities["run"] = [
+            coverage_id.split("___")[1].split("Z")[0] + "Z" for coverage_id in df_capabilities["id"]
+        ]
+        df_capabilities["interval"] = [
+            coverage_id.split("___")[1].split("Z")[1].strip("_") for coverage_id in df_capabilities["id"]
+        ]
+
+        nb_indicators = len(df_capabilities["indicator"].unique())
+        nb_coverage_ids = df_capabilities.shape[0]
+        runs = df_capabilities["run"].unique()
+
+        logger.info(
+            f"\n"
+            f"\t Successfully fetched {nb_coverage_ids} coverages,\n"
+            f"\t representing {nb_indicators} different indicators,\n"
+            f"\t across the last {len(runs)} runs (from {runs.min()} to {runs.max()}).\n"
+            f"\n"
+            f"\t Default run for `get_coverage`: {runs.max()})"
+        )
+
+        return df_capabilities
+
+    def _get_coverage_id(
+        self,
+        indicator: str,
+        run: str | None = None,
+        interval: str | None = None,
+    ) -> str:
+        """
+        Retrieves a `coverage_id` from the capabilities based on the provided parameters.
+
+        Args:
+            indicator (str): The indicator to retrieve. This parameter is required.
+            run (str | None, optional): The model inference timestamp. If None, defaults to the latest available run.
+                Expected format: "YYYY-MM-DDTHH:MM:SSZ". Defaults to None.
+            interval (str | None, optional): The aggregation period. Must be None for instant indicators;
+                raises an error if specified. Defaults to "P1D" for time-aggregated indicators such as
+                TOTAL_PRECIPITATION.
+
+        Returns:
+            str: The `coverage_id` corresponding to the given parameters.
+
+        Raises:
+            ValueError: If `indicator` is missing or invalid.
+            ValueError: If `interval` is invalid or required but missing.
+        """
+        capabilities = self.capabilities[self.capabilities["indicator"] == indicator]
+
+        if indicator not in self.INDICATORS:
+            raise ValueError(f"Unknown `indicator` - checkout `{self.MODEL_NAME}.indicators` to have the full list.")
+
+        if run is None:
+            run = capabilities.iloc[0]["run"]
+            logger.info(f"Using latest `run={run}`.")
+
+        try:
+            dt.datetime.strptime(run, "%Y-%m-%dT%H.%M.%SZ")
+        except ValueError as exc:
+            raise ValueError(f"Run '{run}' is invalid. Expected format 'YYYY-MM-DDTHH.MM.SSZ'") from exc
+
+        valid_runs = capabilities["run"].unique().tolist()
+        if run not in valid_runs:
+            raise ValueError(f"Run '{run}' is invalid. Valid runs : {valid_runs}")
+
+        # handle interval
+        valid_intervals = capabilities["interval"].unique().tolist()
+
+        if indicator in self.INSTANT_INDICATORS:
+            if interval is None:
+                # no interval is expected for instant indicators
+                pass
+            else:
+                raise ValueError(
+                    f"interval={interval} is invalid. No interval is expected (=set to None) for instant "
+                    "indicator `{indicator}`."
+                )
+        else:
+            if interval is None:
+                interval = "P1D"
+                logger.info(
+                    f"`interval=None` is invalid  for non-instant indicators. Using default `interval={interval}`"
+                )
+            elif interval not in valid_intervals:
+                raise ValueError(
+                    f"interval={interval} is invalid  for non-instant indicators. `{indicator}`."
+                    f" Use valid intervals: {valid_intervals}"
+                )
+
+        coverage_id = f"{indicator}___{run}"
+
+        if interval is not None:
+            coverage_id += f"_{interval}"
+
+        return coverage_id
+
     def _raise_if_invalid_or_fetch_default(
         self, param_name: str, inputs: list[int] | None, availables: list[int]
     ) -> list[int]:
@@ -318,47 +341,17 @@ class Forecast(ABC, MeteoFranceClient):
                 logger.info(f"Using `{param_name}={inputs}`")
         return inputs
 
-    @property
-    @abstractmethod
-    def model_name(self) -> str:
-        """AROME or ARPEGE"""
-        pass
-
-    @property
-    @abstractmethod
-    def run_frequency(self) -> int:
-        """Frequency at which model is updated."""
-        pass
-
-    @property
-    @abstractmethod
-    def entry_point(self) -> str:
-        """Entry point to AROME/ARPEGE service."""
-        pass
-
-    @property
-    @abstractmethod
-    def indicators(self) -> str:
-        """The list of available indicators"""
-        pass
-
-    @property
-    @abstractmethod
-    def instant_indicators(self) -> str:
-        """The list of instant indicators"""
-        pass
-
-    def _get_capabilities(self) -> dict:
+    def _fetch_capabilities(self) -> dict:
         """The Capabilities of the AROME/ARPEGE service."""
 
-        url = f"{self.base_url}/{self.entry_point}/GetCapabilities"
+        url = f"{self._model_base_path}/{self._entry_point}/GetCapabilities"
         params = {
             "service": "WCS",
             "version": "2.0.1",
             "language": "eng",
         }
         try:
-            response = self._get_request(url, params=params)
+            response = self._client.get(url, params=params)
         except MissingDataError as e:
             logger.error(f"Error fetching the capabilities: {e}")
             logger.error(f"URL: {url}")
@@ -373,11 +366,6 @@ class Forecast(ABC, MeteoFranceClient):
             logger.error(f"Error parsing the XML response: {e}")
             logger.error(f"Response: {xml}")
             raise e
-
-    @abstractmethod
-    def _validate_parameters(self):
-        """Assert parameters are valid."""
-        pass
 
     def _get_coverage_description(self, coverage_id: str) -> dict:
         """Get the description of a coverage.
@@ -395,13 +383,13 @@ class Forecast(ABC, MeteoFranceClient):
         Returns:
             description (dict): the description of the coverage.
         """
-        url = f"{self.base_url}/{self.entry_point}/DescribeCoverage"
+        url = f"{self._model_base_path}/{self._entry_point}/DescribeCoverage"
         params = {
             "service": "WCS",
             "version": "2.0.1",
             "coverageid": coverage_id,
         }
-        response = self._get_request(url, params=params)
+        response = self._client.get(url, params=params)
         return xmltodict.parse(response.text)
 
     def _transform_grib_to_df(self) -> pd.DataFrame:
@@ -460,9 +448,6 @@ class Forecast(ABC, MeteoFranceClient):
             },
             inplace=True,
         )
-
-        if self.folderpath is not None:
-            shutil.rmtree(self.folderpath)
 
         return df
 
@@ -523,7 +508,7 @@ class Forecast(ABC, MeteoFranceClient):
             self.folderpath = current_working_directory / coverage_id
             logger.debug(f"{self.filepath}")
             logger.debug("File not found in Cache, fetching data")
-            url = f"{self.base_url}/{self.entry_point}/GetCoverage"
+            url = f"{self._model_base_path}/{self._entry_point}/GetCoverage"
             params = {
                 "service": "WCS",
                 "version": "2.0.1",
@@ -537,10 +522,21 @@ class Forecast(ABC, MeteoFranceClient):
                     f"long({long[0]},{long[1]})",
                 ],
             }
-            response = self._get_request(url, params=params)
+            response = self._client.get(url, params=params)
 
             self.filepath.parent.mkdir(parents=True, exist_ok=True)
             with open(self.filepath, "wb") as f:
                 f.write(response.content)
 
         return self.filepath
+
+    @staticmethod
+    def _get_available_feature(grid_axis, feature_name):
+        features = []
+        feature_grid_axis = [
+            ax for ax in grid_axis if ax["gmlrgrid:GeneralGridAxis"]["gmlrgrid:gridAxesSpanned"] == feature_name
+        ]
+        if feature_grid_axis:
+            features = feature_grid_axis[0]["gmlrgrid:GeneralGridAxis"]["gmlrgrid:coefficients"].split(" ")
+            features = [int(feature) for feature in features]
+        return features

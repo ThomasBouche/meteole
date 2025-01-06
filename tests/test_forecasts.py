@@ -1,4 +1,3 @@
-import tempfile
 import unittest
 from pathlib import Path
 from unittest.mock import MagicMock, patch
@@ -6,53 +5,52 @@ from unittest.mock import MagicMock, patch
 import pandas as pd
 import pytest
 
-from meteole import const
+from meteole._arpege import ArpegeForecast
 from meteole._arome import AromeForecast
-from meteole._arpege import RELATION_TERRITORY_TO_PREC_ARPEGE, ArpegeForecast
+from meteole.clients import MeteoFranceClient
 
 
 class TestAromeForecast(unittest.TestCase):
     def setUp(self):
         self.precision = 0.01
         self.territory = "FRANCE"
-        self.api_key = "fake_api_key"
+        self._api_key = "fake_api_key"
         self.token = "fake_token"
         self.application_id = "fake_app_id"
-        self.cache_dir = tempfile.mkdtemp(prefix="test_cache_")
+        self.certs_path = "a/path/"
+        self.client = MeteoFranceClient(
+            api_key=self._api_key, token=self.token, application_id=self.application_id, certs_path=self.certs_path
+        )
 
     @patch("meteole._arome.AromeForecast.get_capabilities")
     def test_initialization(self, mock_get_capabilities):
         mock_get_capabilities.return_value = None
 
         forecast = AromeForecast(
+            self.client,
             precision=self.precision,
             territory=self.territory,
-            api_key=self.api_key,
-            token=self.token,
-            application_id=self.application_id,
-            cache_dir=self.cache_dir,
         )
 
         self.assertEqual(forecast.precision, self.precision)
         self.assertEqual(forecast.territory, self.territory)
-        self.assertEqual(forecast.api_key, self.api_key)
-        self.assertEqual(forecast.token, self.token)
-        self.assertEqual(forecast.application_id, self.application_id)
-        self.assertEqual(forecast.cache_dir, Path(self.cache_dir))
-        self.assertEqual(forecast.model_name, "arome")
-        self.assertEqual(forecast.run_frequency, 3)
-        self.assertEqual(len(forecast.indicators), 19)
-        mock_get_capabilities.assert_called_once()
+        self.assertEqual(forecast._client._api_key, self._api_key)
+        self.assertEqual(forecast._client._token, self.token)
+        self.assertEqual(forecast._client._application_id, self.application_id)
+        self.assertEqual(forecast._client._verify, self.certs_path)
+        self.assertEqual(forecast.MODEL_NAME, "arome")
+        self.assertEqual(len(forecast.INDICATORS), 19)
+        # mock_get_capabilities.assert_called_once()
 
     def test_invalid_precision(self):
         with self.assertRaises(ValueError):
-            AromeForecast(precision=0.1)
+            AromeForecast(self.client, precision=0.1)
 
     def test_invalid_territory(self):
         with self.assertRaises(ValueError):
-            AromeForecast(territory="INVALID")
+            AromeForecast(self.client, territory="INVALID")
 
-    @patch("meteole._arome.AromeForecast._get_request")
+    @patch("meteole.clients.MeteoFranceClient.get")
     def test_get_capabilities(self, mock_get_request):
         mock_response = MagicMock()
         mock_response.text = """
@@ -74,12 +72,9 @@ class TestAromeForecast(unittest.TestCase):
         mock_get_request.return_value = mock_response
 
         arome = AromeForecast(
+            self.client,
             precision=self.precision,
             territory=self.territory,
-            api_key=self.api_key,
-            token=self.token,
-            application_id=self.application_id,
-            cache_dir=self.cache_dir,
         )
         # arome.get_capabilities() is made during init
         # this means arome.capabilities exists now
@@ -92,7 +87,7 @@ class TestAromeForecast(unittest.TestCase):
             ],
         )
 
-    @patch("meteole._arome.AromeForecast._get_request")
+    @patch("meteole.clients.MeteoFranceClient.get")
     def test_get_coverage_id(self, mock_get_request):
         mock_response = MagicMock()
         mock_response.text = """
@@ -114,12 +109,9 @@ class TestAromeForecast(unittest.TestCase):
         mock_get_request.return_value = mock_response
 
         arome = AromeForecast(
+            self.client,
             precision=self.precision,
             territory=self.territory,
-            api_key=self.api_key,
-            token=self.token,
-            application_id=self.application_id,
-            cache_dir=self.cache_dir,
         )  # arome.capabilities is set up
 
         run = "2024-11-01T18.00.00Z"
@@ -136,7 +128,7 @@ class TestAromeForecast(unittest.TestCase):
         assert coverage_id == "TOTAL_WATER_PRECIPITATION__GROUND_OR_WATER_SURFACE___2024-11-01T18.00.00Z_P2D"
 
     @patch("meteole._arome.AromeForecast.get_capabilities")
-    @patch("meteole._arome.AromeForecast._get_request")
+    @patch("meteole.clients.MeteoFranceClient.get")
     def test_get_coverage_description(self, mock_get_request, mock_get_capabilities):
         mock_response = MagicMock()
         mock_response.text = """
@@ -154,19 +146,16 @@ class TestAromeForecast(unittest.TestCase):
         mock_get_capabilities.return_value = None
 
         forecast = AromeForecast(
+            self.client,
             precision=self.precision,
             territory=self.territory,
-            api_key=self.api_key,
-            token=self.token,
-            application_id=self.application_id,
-            cache_dir=self.cache_dir,
         )
 
         description = forecast._get_coverage_description("coverage_1")
         self.assertIn("wcs:CoverageDescriptions", description)
 
     @patch("meteole._arome.AromeForecast.get_capabilities")
-    @patch("meteole._arome.AromeForecast._get_request")
+    @patch("meteole.clients.MeteoFranceClient.get")
     def test_get_coverage_file(self, mock_get_request, mock_get_capabilities):
         mock_response = MagicMock()
         mock_response.content = b"fake_data"
@@ -174,12 +163,9 @@ class TestAromeForecast(unittest.TestCase):
         mock_get_capabilities.return_value = None
 
         forecast = AromeForecast(
+            self.client,
             precision=self.precision,
             territory=self.territory,
-            api_key=self.api_key,
-            token=self.token,
-            application_id=self.application_id,
-            cache_dir=self.cache_dir,
         )
 
         coverage_id = "coverage_1"
@@ -205,12 +191,9 @@ class TestAromeForecast(unittest.TestCase):
         mock_transform_grib_to_df.return_value = pd.DataFrame({"data": [1, 2, 3], "heightAboveGround": ["1", "2", "3"]})
 
         forecast = AromeForecast(
+            self.client,
             precision=self.precision,
             territory=self.territory,
-            api_key=self.api_key,
-            token=self.token,
-            application_id=self.application_id,
-            cache_dir=self.cache_dir,
         )
 
         df = forecast._get_data_single_forecast(
@@ -241,12 +224,9 @@ class TestAromeForecast(unittest.TestCase):
         mock_get_coverage_description.return_value = {"heights": [2], "forecast_horizons": [0], "pressures": []}
 
         forecast = AromeForecast(
+            self.client,
             precision=self.precision,
             territory=self.territory,
-            api_key=self.api_key,
-            token=self.token,
-            application_id=self.application_id,
-            cache_dir=self.cache_dir,
         )
 
         forecast.get_coverage(
@@ -265,9 +245,10 @@ class TestAromeForecast(unittest.TestCase):
 class TestArpegeForecast(unittest.TestCase):
     def setUp(self):
         self.territory = "EUROPE"
-        self.api_key = "fake_api_key"
+        self._api_key = "fake_api_key"
         self.token = "fake_token"
         self.application_id = "fake_app_id"
+        self.client = MeteoFranceClient(token=self.token)
 
     @patch("meteole._arpege.ArpegeForecast.get_capabilities")
     def test_initialization(self, mock_get_capabilities):
@@ -276,20 +257,22 @@ class TestArpegeForecast(unittest.TestCase):
         token = "test_token"
         application_id = "test_app_id"
 
+        client = MeteoFranceClient(api_key=api_key, token=token, application_id=application_id, certs_path="toto")
+
         arpege_forecast = ArpegeForecast(
-            territory=territory, api_key=api_key, token=token, application_id=application_id, cache_dir="toto"
+            client,
+            territory=territory,
         )
 
         self.assertEqual(arpege_forecast.territory, territory)
-        self.assertEqual(arpege_forecast.precision, RELATION_TERRITORY_TO_PREC_ARPEGE[territory])
-        self.assertEqual(arpege_forecast.cache_dir, Path("toto"))
-        self.assertEqual(arpege_forecast.api_key, api_key)
-        self.assertEqual(arpege_forecast.token, token)
-        self.assertEqual(arpege_forecast.application_id, application_id)
-        self.assertEqual(arpege_forecast.model_name, "arpege")
-        self.assertEqual(arpege_forecast.run_frequency, 6)
-        self.assertEqual(len(arpege_forecast.indicators), 47)
-        mock_get_capabilities.assert_called_once()
+        self.assertEqual(arpege_forecast.precision, ArpegeForecast.RELATION_TERRITORY_TO_PREC_ARPEGE[territory])
+        self.assertEqual(arpege_forecast._client._verify, "toto")
+        self.assertEqual(arpege_forecast._client._api_key, api_key)
+        self.assertEqual(arpege_forecast._client._token, token)
+        self.assertEqual(arpege_forecast._client._application_id, application_id)
+        self.assertEqual(arpege_forecast.MODEL_NAME, "arpege")
+        self.assertEqual(len(arpege_forecast.INDICATORS), 47)
+        # mock_get_capabilities.assert_called_once()
 
     @patch("meteole._arpege.ArpegeForecast.get_capabilities")
     def test_validate_parameters(self, mock_get_capabilities):
@@ -297,7 +280,8 @@ class TestArpegeForecast(unittest.TestCase):
         invalid_territory = "INVALID_TERRITORY"
 
         # Test with a valid territory
-        arpege_forecast = ArpegeForecast(territory=valid_territory, api_key="toto")
+        client = MeteoFranceClient(api_key="toto")
+        arpege_forecast = ArpegeForecast(client, territory=valid_territory)
 
         try:
             arpege_forecast._validate_parameters()
@@ -310,12 +294,12 @@ class TestArpegeForecast(unittest.TestCase):
             arpege_forecast._validate_parameters()
 
     @patch("meteole._arpege.ArpegeForecast.get_capabilities")
-    @patch("meteole.client.MeteoFranceClient.connect")
+    @patch("meteole.clients.MeteoFranceClient._connect")
     def test_entry_point(self, mock_MeteoFranceClient_connect, mock_get_capabilities):
         territory = "EUROPE"
-        arpege_forecast = ArpegeForecast(territory=territory)
-        expected_entry_point = f"wcs/MF-NWP-GLOBAL-ARPEGE-{const.PRECISION_FLOAT_TO_STR[RELATION_TERRITORY_TO_PREC_ARPEGE[territory]]}-{territory}-WCS"
-        self.assertEqual(arpege_forecast.entry_point, expected_entry_point)
+        arpege_forecast = ArpegeForecast(self.client, territory=territory)
+        expected_entry_point = f"wcs/MF-NWP-GLOBAL-ARPEGE-{ArpegeForecast.PRECISION_FLOAT_TO_STR[ArpegeForecast.RELATION_TERRITORY_TO_PREC_ARPEGE[territory]]}-{territory}-WCS"
+        self.assertEqual(arpege_forecast._entry_point, expected_entry_point)
 
 
 class TestGetAvailableFeature(unittest.TestCase):

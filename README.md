@@ -109,13 +109,13 @@ Meteo France provides nationwide vigilance bulletins, highlighting potential wea
 ```python
 from meteole import Vigilance
 
-client = Vigilance(application_id=APPLICATION_ID)
+vigi = Vigilance(application_id=APPLICATION_ID)
 
-df_phenomenon, df_timelaps = client.get_phenomenon() # pour accéder aux phénomènes prévus
+df_phenomenon, df_timelaps = vigi.get_phenomenon()
 
-textes_vigilance = client.get_vigilance_bulletin() # pour accéder aux bulletins de vigilance
+bulletin = vigi.get_bulletin()
 
-client.get_vignette() # pour afficher les vignettes
+vigi.get_vignette()
 ```
 
 <img src="docs/pages/assets/img/png/vignette_exemple.png" width="600" height="300" alt="vignette de vigilance">
