@@ -61,7 +61,7 @@ print(arome_forecast.INDICATORS)
 # (All default parameters are printed to make sure you are in control)
 df_arome = arome_forecast.get_coverage(indicator)
 
-# default height doesn't suit you? change it easily
+# Default height doesn't suit you? change it easily
 df_arome = arome_forecast.get_coverage(indicator, height=10)
 ```
 
@@ -78,7 +78,7 @@ vigi = Vigilance(application_id=APPLICATION_ID)
 
 df_phenomenon, df_timelaps = vigi.get_phenomenon()
 
-textes_vigilance = vigi.get_bulletin()
+bulletin = vigi.get_bulletin()
 
 vigi.get_vignette()
 ```
