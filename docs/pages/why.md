@@ -16,7 +16,7 @@ It involved:
 
 ## After Meteole :sunny:
 
-**Meteole** Meteole simplifies the process, allowing you to quickly fetch tidy pandas dataframes full of weather-rich data:
+**Meteole** simplifies the process, allowing you to quickly fetch tidy pandas dataframes full of weather-rich data:
 
 * By handling the API boilerplate
 * By providing simple and well-documented function
