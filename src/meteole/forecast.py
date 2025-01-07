@@ -8,7 +8,7 @@ import re
 from abc import ABC, abstractmethod
 from functools import reduce
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, List
 from warnings import warn
 
 import pandas as pd
@@ -263,7 +263,7 @@ class Forecast(ABC):
         valid_intervals = capabilities["interval"].unique().tolist()
 
         if indicator in self.INSTANT_INDICATORS:
-            if interval is None:
+            if not interval:
                 # no interval is expected for instant indicators
                 pass
             else:
@@ -272,7 +272,7 @@ class Forecast(ABC):
                     "indicator `{indicator}`."
                 )
         else:
-            if interval is None:
+            if not interval:
                 interval = "P1D"
                 logger.info(
                     f"`interval=None` is invalid  for non-instant indicators. Using default `interval={interval}`"
@@ -285,7 +285,7 @@ class Forecast(ABC):
 
         coverage_id = f"{indicator}___{run}"
 
-        if interval is not None:
+        if interval:
             coverage_id += f"_{interval}"
 
         return coverage_id
@@ -300,11 +300,11 @@ class Forecast(ABC):
 
         Args:
             param_name (str): The name of the parameter to validate.
-            inputs (Optional[List[int]]): The list of inputs to validate.
-            availables (List[int]): The list of available values.
+            inputs (list[int] | None): The list of inputs to validate.
+            availables (list[int]): The list of available values.
 
         Returns:
-            List[int]: The validated list of inputs or the default value.
+            list[int]: The validated list of inputs or the default value.
 
         Raises:
             ValueError: If any of the inputs are not in `availables`.
@@ -545,111 +545,154 @@ class Forecast(ABC):
 
     def get_combined_coverage(
         self,
-        indicator_names: List[str],
-        runs: List[str],
-        heights: Optional[List[int]] = None,
-        pressures: Optional[List[int]] = None,
-        intervals: Optional[List[str]] = None,
+        indicator_names: list[str],
+        runs: list[str | None] | None = None,
+        heights: list[int] | None = None,
+        pressures: list[int] | None = None,
+        intervals: list[str | None] | None = None,
         lat: tuple = FRANCE_METRO_LATITUDES,
         long: tuple = FRANCE_METRO_LONGITUDES,
-        forecast_horizons: List[int] | None = None,
+        forecast_horizons: list[int] | None = None,
     ) -> pd.DataFrame:
         """
-        Get a combined DataFrame of coverage data for multiple coverage_ids with different runs.
-        Parameters:
-        indicator_names (List[str]): List of indicator names.
-        runs (List[str]): List of runs for each indicator. Format "YYYY-MM-DDTHH:MM:SSZ".
-        heights (List[int]): List of heights in meters.
-        pressures (List[int]): pressures in hPa
-        intervals (Optional[List[str]]): List of aggregation periods. Must be None for instant indicators, otherwise raises. Defaults to P1D for time-aggregated indicators like TOTAL_PRECIPITATION.
-        lat (tuple): Minimum and maximum latitude.
-        long (tuple): Minimum and maximum longitude.
-        forecast_horizons (list): list of integers, representing the forecast horizon in hours
+        Get a combined DataFrame of coverage data for multiple indicators and different runs.
+
+        This method retrieves and aggregates coverage data for specified indicators, with options
+        to filter by height, pressure, and forecast_horizon. It returns a concatenated DataFrame
+        containing the coverage data for all provided runs.
+
+        Args:
+            indicator_names (list[str]): A list of indicator names to retrieve data for.
+            runs (list[str]): A list of runs for each indicator. Format should be "YYYY-MM-DDTHH:MM:SSZ".
+            heights (list[int] | None): A list of heights in meters to filter by (default is None).
+            pressures (list[int] | None): A list of pressures in hPa to filter by (default is None).
+            intervals (list[str] | None): A list of aggregation periods (default is None). Must be `None` or "" for instant indicators;
+                                              otherwise, raises an exception. Defaults to 'P1D' for time-aggregated indicators.
+            lat (tuple): The latitude range as (min_latitude, max_latitude). Defaults to FRANCE_METRO_LATITUDES.
+            long (tuple): The longitude range as (min_longitude, max_longitude). Defaults to FRANCE_METRO_LONGITUDES.
+            forecast_horizons (list[int] | None): A list of forecast horizon values in hours. Defaults to None.
+
         Returns:
-        pd.DataFrame: Combined DataFrame with coverage data for all coverage_ids.
+            pd.DataFrame: A combined DataFrame containing coverage data for all specified runs and indicators.
+
         Raises:
-        ValueError: If the length of heights does not match the length of indicator_names.
+            ValueError: If the length of `heights` does not match the length of `indicator_names`.
+
         """
-        if len(runs) != len(set(runs)):
-            raise ValueError("The run in 'runs' must be different.")
+        if not runs:
+            runs = [None]
+        coverages = [
+            self._get_combined_coverage_for_single_run(
+                indicator_names=indicator_names,
+                run=run,
+                lat=lat,
+                long=long,
+                heights=heights,
+                pressures=pressures,
+                intervals=intervals,
+                forecast_horizons=forecast_horizons,
+            )
+            for run in runs
+        ]
+        return pd.concat(coverages, axis=0).reset_index(drop=True)
 
-        if heights is not None:
-            if len(heights) != len(indicator_names):
+    def _get_combined_coverage_for_single_run(
+        self,
+        indicator_names: list[str],
+        run: str | None = None,
+        heights: list[int] | None = None,
+        pressures: list[int] | None = None,
+        intervals: list[str | None] | None = None,
+        lat: tuple = FRANCE_METRO_LATITUDES,
+        long: tuple = FRANCE_METRO_LONGITUDES,
+        forecast_horizons: list[int] | None = None,
+    ) -> pd.DataFrame:
+        """
+        Get a combined DataFrame of coverage data for a given run considering a list of indicators.
+
+        This method retrieves and aggregates coverage data for specified indicators, with options
+        to filter by height, pressure, and forecast_horizon. It returns a concatenated DataFrame
+        containing the coverage data.
+
+        Args:
+            indicator_names (list[str]): A list of indicator names to retrieve data for.
+            run (str): A single runs for each indicator. Format should be "YYYY-MM-DDTHH:MM:SSZ".
+            heights (list[int] | None): A list of heights in meters to filter by (default is None).
+            pressures (list[int] | None): A list of pressures in hPa to filter by (default is None).
+            intervals (Optional[list[str]]): A list of aggregation periods (default is None). Must be `None` or "" for instant indicators;
+                                              otherwise, raises an exception. Defaults to 'P1D' for time-aggregated indicators.
+            lat (tuple): The latitude range as (min_latitude, max_latitude). Defaults to FRANCE_METRO_LATITUDES.
+            long (tuple): The longitude range as (min_longitude, max_longitude). Defaults to FRANCE_METRO_LONGITUDES.
+            forecast_horizons (list[int] | None): A list of forecast horizon values in hours. Defaults to None.
+
+        Returns:
+            pd.DataFrame: A combined DataFrame containing coverage data for all specified runs and indicators.
+
+        Raises:
+            ValueError: If the length of `heights` does not match the length of `indicator_names`.
+
+        """
+
+        def _check_params_length(params: list | None, arg_name: str) -> list:
+            """assert length is ok or raise"""
+            if params is None:
+                return [None] * len(indicator_names)
+            if len(params) != len(indicator_names):
                 raise ValueError(
-                    "The length of heights must match the length of indicator_names. If you want multiple heights for a single indicator, you need to create multiple entries in indicator_names."
+                    f"The length of {arg_name} must match the length of indicator_names. If you want multiple {arg_name} for a single indicator, create multiple entries in `indicator_names`."
                 )
-        else:
-            heights = []
-        if pressures is not None:
-            if len(pressures) != len(indicator_names):
-                raise ValueError(
-                    "The length of pressures must match the length of indicator_names. If you want multiple pressures for a single indicator, you need to create multiple entries in indicator_names."
-                )
-        else:
-            pressures = []
+            return params
 
-        if intervals and len(intervals) != len(indicator_names):
-            raise ValueError("The length of intervals must match the length of indicator_names if provided.")
+        heights = _check_params_length(heights, "heights")
+        pressures = _check_params_length(pressures, "pressures")
+        intervals = _check_params_length(intervals, "intervals")
 
-        coverage_ids_by_run: Dict[str, List[Tuple[str, Optional[int], Optional[int]]]] = dict()
+        # Get coverage id from run and indicator_name
+        coverage_ids = [
+            self._get_coverage_id(indicator_name, run, interval)
+            for indicator_name, interval in zip(indicator_names, intervals)
+        ]
 
-        for run in runs:
-            if run not in coverage_ids_by_run:
-                coverage_ids_by_run[run] = []
-            for i, indicator in enumerate(indicator_names):
-                height_value: Optional[int] = heights[i] if heights != [] else None
-                pressure_value: Optional[int] = pressures[i] if pressures != [] else None
-                coverage_id: str = self._get_coverage_id(indicator, run, intervals[i] if intervals else None)
-                coverage_ids_by_run[run].append((coverage_id, height_value, pressure_value))
-
-            if forecast_horizons is None:
-                list_coverage_id = [cid for cid, _, _ in coverage_ids_by_run[run]]
-                forecast_horizons = [self.find_common_forecast_horizons(list_coverage_id)[0]]
-                logger.info(f"Using common forecast_horizons `forecast_horizons={forecast_horizons}`.")
-
-        # Check forecast_horizons is valid for all indicators
-        if forecast_horizons is not None:
-            coverage_ids = [cid for run_coverage in coverage_ids_by_run.values() for cid, _, _ in run_coverage]
+        if forecast_horizons:
+            # Check forecast_horizons is valid for all indicators
             invalid_coverage_ids = self._validate_forecast_horizons(coverage_ids, forecast_horizons)
             if invalid_coverage_ids:
-                raise ValueError(f"{forecast_horizons} are not valid for this coverage_ids : {invalid_coverage_ids}")
+                raise ValueError(f"{forecast_horizons} are not valid for these coverage_ids : {invalid_coverage_ids}")
+        else:
+            forecast_horizons = [self.find_common_forecast_horizons(coverage_ids)[0]]
+            logger.info(f"Using common forecast_horizons `forecast_horizons={forecast_horizons}`.")
 
-        coverages_by_run = {}
-
-        for run, coverage_ids in coverage_ids_by_run.items():
-            coverages = [
-                self.get_coverage(
-                    coverage_id=coverage_id,
-                    lat=lat,
-                    long=long,
-                    heights=[height] if height is not None else [],
-                    pressures=[pressure] if pressure is not None else [],
-                    forecast_horizons=forecast_horizons,
-                )
-                for coverage_id, height, pressure in coverage_ids
-            ]
-            coverages_by_run[run] = reduce(
-                lambda left, right: pd.merge(
-                    left,
-                    right,
-                    on=["latitude", "longitude", "run", "forecast_horizon"],
-                    how="inner",
-                    validate="one_to_one",
-                ),
-                coverages,
+        coverages = [
+            self.get_coverage(
+                coverage_id=coverage_id,
+                run=run,
+                lat=lat,
+                long=long,
+                heights=[height] if height is not None else [],
+                pressures=[pressure] if pressure is not None else [],
+                forecast_horizons=forecast_horizons,
             )
+            for coverage_id, height, pressure in zip(coverage_ids, heights, pressures)
+        ]
 
-        final_df = pd.concat(coverages_by_run.values(), axis=0).reset_index(drop=True)
-
-        return final_df
+        return reduce(
+            lambda left, right: pd.merge(
+                left,
+                right,
+                on=["latitude", "longitude", "run", "forecast_horizon"],
+                how="inner",
+                validate="one_to_one",
+            ),
+            coverages,
+        )
 
     def _get_forecast_horizons(self, coverage_ids: List[str]) -> List[List[int]]:
         """
         Retrieve the times for each coverage_id.
         Parameters:
-        coverage_ids (List[str]): List of coverage IDs.
+        coverage_ids (list[str]): List of coverage IDs.
         Returns:
-        List[List[int]]: List of times for each coverage ID.
+        list[list[int]]: List of times for each coverage ID.
         """
         indicator_times = []
         for coverage_id in coverage_ids:
@@ -659,15 +702,15 @@ class Forecast(ABC):
 
     def find_common_forecast_horizons(
         self,
-        list_coverage_id: List[str],
-    ) -> List[int]:
+        list_coverage_id: list[str],
+    ) -> list[int]:
         """
         Find common forecast_horizons among coverage IDs.
-        indicator_names (List[str]): List of indicator names.
+        indicator_names (list[str]): List of indicator names.
         run (Optional[str]): Identifies the model inference. Defaults to latest if None. Format "YYYY-MM-DDTHH:MM:SSZ".
-        intervals (Optional[List[str]]): List of aggregation periods. Must be None for instant indicators, otherwise raises. Defaults to P1D for time-aggregated indicators like TOTAL_PRECIPITATION.
+        intervals (Optional[list[str]]): List of aggregation periods. Must be None for instant indicators, otherwise raises. Defaults to P1D for time-aggregated indicators like TOTAL_PRECIPITATION.
         Returns:
-        List[int]: Common forecast_horizons
+        list[int]: Common forecast_horizons
         """
         indicator_forecast_horizons = self._get_forecast_horizons(list_coverage_id)
 
@@ -685,10 +728,10 @@ class Forecast(ABC):
         """
         Validate forecast_horizons for a list of coverage IDs.
         Parameters:
-        coverage_ids (List[str]): List of coverage IDs.
-        forecast_horizons (List[int]): List of time forecasts to validate.
+        coverage_ids (list[str]): List of coverage IDs.
+        forecast_horizons (list[int]): List of time forecasts to validate.
         Returns:
-        List[str]: List of invalid coverage IDs.
+        list[str]: List of invalid coverage IDs.
         """
         indicator_forecast_horizons = self._get_forecast_horizons(coverage_ids)
 

@@ -440,7 +440,7 @@ class TestAromeForecast(unittest.TestCase):
             forecast.get_combined_coverage(
                 indicator_names, runs, heights, pressures, intervals, lat, long, forecast_horizons
             )
-        self.assertIn("are not valid for this coverage_ids", str(context.exception))
+        self.assertIn("are not valid for these coverage_ids", str(context.exception))
 
     @patch("meteole._arome.AromeForecast._get_coverage_id")
     @patch("meteole._arome.AromeForecast.find_common_forecast_horizons")

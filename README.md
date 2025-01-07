@@ -22,7 +22,15 @@
 
 ## Overview
 
-**Meteole** provides utilities to facilitate data retrieval from the Météo-France APIs using Python. It specifically supports the AROME and ARPEGE forecast models and vigilance bulletins.
+**Meteole** is a Python library designed to simplify accessing weather data from the Météo-France APIs. It provides:
+
+- **Automated token management**: Simplify authentication with a single `application_id`.
+- **Unified model usage**: AROME and ARPEGE forecasts with a consistent interface.
+- **User-friendly parameter handling**: Intuitive management of key weather forecasting parameters.
+- **Seamless data integration**: Directly export forecasts as Pandas DataFrames
+- **Vigilance bulletins**: Retrieve real-time weather warnings across France.
+
+Perfect for data scientists, meteorologists, and developers, Meteole helps integrate weather forecasts into projects effortlessly.
 
 ### Installation
 
@@ -32,13 +40,13 @@ pip install meteole
 
 ## 🕐 Quickstart
 
-### Obtain an API token or key
+### Step 1: Obtain an API token or key
 
 Create an account on [the Météo-France API portal](https://portail-api.meteofrance.fr/). Next, subscribe to the desired APIs (Arome, Arpege, etc.). Retrieve the API token (or key) by going to “Mes APIs” and then “Générer token”.
 
-### 🌧️ AROME, ARPEGE
+### Step 2: Fetch Forecasts from AROME and ARPEGE
 
-The flagship weather forecasting models of Météo-France are accessible via the Météo-France APIs.
+Meteole allows you to retrieve forecasts for a wide range of weather indicators. Here's how to get started with AROME and ARPEGE:
 
 | Characteristics  | AROME                | ARPEGE               |
 |------------------|----------------------|----------------------|
@@ -49,27 +57,54 @@ The flagship weather forecasting models of Météo-France are accessible via the
 ```python
 from meteole import AromeForecast
 
-arome_forecast = AromeForecast(application_id=APPLICATION_ID)  # APPLICATION_ID found on portail.meteo-france.Fr
+# Initialize the AROME forecast client
+arome_client = AromeForecast(application_id=APPLICATION_ID)  # APPLICATION_ID found on portail.meteo-france.Fr
 
-# Let's look at the latest wind gusts
-indicator = 'V_COMPONENT_OF_WIND_GUST__SPECIFIC_HEIGHT_LEVEL_ABOVE_GROUND'
+# Check indicators available
+print(arome_client.indicators)
 
-# Or check any other indicator in the list
-print(arome_forecast.INDICATORS)
+# Fetch weather data
+df_arome = arome_client.get_coverage(
+    indicator="V_COMPONENT_OF_WIND_GUST__SPECIFIC_HEIGHT_LEVEL_ABOVE_GROUND",  # Optional: if not, you have to fill coverage_id
+    run="2025-01-10T00:00:00Z",                                                # Optional: forecast start time
+    interval=None,                                                             # Optional: time range for predictions
+    forecast_horizons=[0, 1, 2],                                               # Optional: prediction times (in hours)
+    heights=[10],                                                              # Optional: height above ground level  
+    pressures=None,                                                            # Optional: pressure level
+    coverage_id=None                                                           # Optional: an alternative to indicator/run/interval
+)
+```
+Note: The coverage_id can be used instead of indicator, run, and interval.
 
-# Get the latest MeteoFrance forecasts concerning this indicator
-# (All default parameters are printed to make sure you are in control)
-df_arome = arome_forecast.get_coverage(indicator)
+The usage of ARPEGE is identical to AROME, except that you initialize the `ArpegeForecast` class
 
-# default height doesn't suit you? change it easily
-df_arome = arome_forecast.get_coverage(indicator, height=10)
+### Step 3: Explore Parameters and Indicators
+#### Discover Available Indicators
+Use the `get_capabilities()` method to list all available indicators, run times, and intervals:
+
+```
+indicators = arome_client.get_capabilities()
+print(indicators)
 ```
 
+#### Fetch Description for a Specific Indicator
+Understand the required parameters (`forecast_horizons`, `heights`, `pressures`)  for any indicator using `get_description()`:
+
+```
+description = arome_client.get_description(coverage_id)
+print(description)
+```
+
+#### Geographical Coverage
+The geographical coverage of forecasts can be customized using the lat and long parameters in the get_coverage method. By default, Meteole retrieves data for the entire metropolitan France.
+
+#### Fetch Forecasts for Multiple Indicators
+The `get_combined_coverage` method allows you to retrieve weather data for multiple indicators at the same time, streamlining the process of gathering forecasts for different parameters (e.g., temperature, wind speed, etc.). For detailed guidance on using this feature, refer to this [tutorial](./tutorial/Fetch_forecast_for_multiple_indicators.ipynb).
+
+Explore detailed examples in the [tutorials folder](./tutorial) to quickly get started with Meteole.
+
 ### ⚠️ VIGILANCE METEO FRANCE
-
-Meteo France offers a vigilance bulletin that provides nationwide predictions of potential weather risks.
-
-For data usage, access the predicted phenomena to trigger modeling based on the forecasts.
+Meteo France provides nationwide vigilance bulletins, highlighting potential weather risks. These tools allow you to integrate weather warnings into your workflows, helping trigger targeted actions or models.
 
 ```python
 from meteole import Vigilance
@@ -78,7 +113,7 @@ vigi = Vigilance(application_id=APPLICATION_ID)
 
 df_phenomenon, df_timelaps = vigi.get_phenomenon()
 
-textes_vigilance = vigi.get_bulletin()
+bulletin = vigi.get_bulletin()
 
 vigi.get_vignette()
 ```
@@ -101,4 +136,5 @@ and general hints on how to prepare your pull request. You can also ask for clar
 
 This project is Open Source and available under the Apache 2 License.
 
-[![Alt MAIF Logo](https://static.maif.fr/resources/img/logo-maif.svg)](https://www.maif.fr/)
+## 🤝 Contributors
+The development of Meteole was inspired by the excellent work in the [meteofranceapi](https://github.com/antoinetavant/meteofranceapi) repository by Antoine Tavant.

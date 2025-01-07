@@ -17,6 +17,7 @@ repos:
         exclude: ^(docs/)
       - id: pretty-format-json
         args: [--autofix]
+        exclude_types: [jupyter]
       - id: trailing-whitespace
         args: [--markdown-linebreak-ext=md]
         exclude: ^(docs/)
