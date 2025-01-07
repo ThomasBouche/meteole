@@ -8,7 +8,7 @@ import re
 from abc import ABC, abstractmethod
 from functools import reduce
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any
 from warnings import warn
 
 import pandas as pd
@@ -263,7 +263,7 @@ class Forecast(ABC):
         valid_intervals = capabilities["interval"].unique().tolist()
 
         if indicator in self.INSTANT_INDICATORS:
-            if interval is None:
+            if not interval:
                 # no interval is expected for instant indicators
                 pass
             else:
@@ -272,7 +272,7 @@ class Forecast(ABC):
                     "indicator `{indicator}`."
                 )
         else:
-            if interval is None:
+            if not interval:
                 interval = "P1D"
                 logger.info(
                     f"`interval=None` is invalid  for non-instant indicators. Using default `interval={interval}`"
@@ -285,7 +285,7 @@ class Forecast(ABC):
 
         coverage_id = f"{indicator}___{run}"
 
-        if interval is not None:
+        if interval:
             coverage_id += f"_{interval}"
 
         return coverage_id
@@ -300,7 +300,7 @@ class Forecast(ABC):
 
         Args:
             param_name (str): The name of the parameter to validate.
-            inputs (Optional[list[int]]): The list of inputs to validate.
+            inputs (list[int] | None): The list of inputs to validate.
             availables (list[int]): The list of available values.
 
         Returns:
@@ -547,9 +547,9 @@ class Forecast(ABC):
         self,
         indicator_names: list[str],
         runs: list[str],
-        heights: Optional[list[int]] = None,
-        pressures: Optional[list[int]] = None,
-        intervals: Optional[list[str]] = None,
+        heights: list[int] | None = None,
+        pressures: list[int] | None = None,
+        intervals: list[str | None] | None = None,
         lat: tuple = FRANCE_METRO_LATITUDES,
         long: tuple = FRANCE_METRO_LONGITUDES,
         forecast_horizons: list[int] | None = None,
@@ -564,13 +564,13 @@ class Forecast(ABC):
         Args:
             indicator_names (list[str]): A list of indicator names to retrieve data for.
             runs (list[str]): A list of runs for each indicator. Format should be "YYYY-MM-DDTHH:MM:SSZ".
-            heights (Optional[list[int]]): A list of heights in meters to filter by (default is None).
-            pressures (Optional[list[int]]): A list of pressures in hPa to filter by (default is None).
-            intervals (Optional[list[str]]): A list of aggregation periods (default is None). Must be `None` for instant indicators;
+            heights (list[int] | None): A list of heights in meters to filter by (default is None).
+            pressures (list[int] | None): A list of pressures in hPa to filter by (default is None).
+            intervals (list[str] | None): A list of aggregation periods (default is None). Must be `None` or "" for instant indicators;
                                               otherwise, raises an exception. Defaults to 'P1D' for time-aggregated indicators.
             lat (tuple): The latitude range as (min_latitude, max_latitude). Defaults to FRANCE_METRO_LATITUDES.
             long (tuple): The longitude range as (min_longitude, max_longitude). Defaults to FRANCE_METRO_LONGITUDES.
-            forecast_horizons (Optional[list[int]]): A list of forecast horizon values in hours. Defaults to None.
+            forecast_horizons (list[int] | None): A list of forecast horizon values in hours. Defaults to None.
 
         Returns:
             pd.DataFrame: A combined DataFrame containing coverage data for all specified runs and indicators.
@@ -600,7 +600,7 @@ class Forecast(ABC):
         run: str,
         heights: list[int] | None = None,
         pressures: list[int] | None = None,
-        intervals: list[str] | None = None,
+        intervals: list[str | None] | None = None,
         lat: tuple = FRANCE_METRO_LATITUDES,
         long: tuple = FRANCE_METRO_LONGITUDES,
         forecast_horizons: list[int] | None = None,
@@ -615,13 +615,13 @@ class Forecast(ABC):
         Args:
             indicator_names (list[str]): A list of indicator names to retrieve data for.
             run (str): A single runs for each indicator. Format should be "YYYY-MM-DDTHH:MM:SSZ".
-            heights (Optional[list[int]]): A list of heights in meters to filter by (default is None).
-            pressures (Optional[list[int]]): A list of pressures in hPa to filter by (default is None).
-            intervals (Optional[list[str]]): A list of aggregation periods (default is None). Must be `None` for instant indicators;
+            heights (list[int] | None): A list of heights in meters to filter by (default is None).
+            pressures (list[int] | None): A list of pressures in hPa to filter by (default is None).
+            intervals (Optional[list[str]]): A list of aggregation periods (default is None). Must be `None` or "" for instant indicators;
                                               otherwise, raises an exception. Defaults to 'P1D' for time-aggregated indicators.
             lat (tuple): The latitude range as (min_latitude, max_latitude). Defaults to FRANCE_METRO_LATITUDES.
             long (tuple): The longitude range as (min_longitude, max_longitude). Defaults to FRANCE_METRO_LONGITUDES.
-            forecast_horizons (Optional[list[int]]): A list of forecast horizon values in hours. Defaults to None.
+            forecast_horizons (list[int] | None): A list of forecast horizon values in hours. Defaults to None.
 
         Returns:
             pd.DataFrame: A combined DataFrame containing coverage data for all specified runs and indicators.
