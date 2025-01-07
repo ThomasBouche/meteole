@@ -17,6 +17,7 @@ repos:
         exclude: ^(docs/)
       - id: pretty-format-json
         args: [--autofix]
+        exclude_types: [jupyter]
       - id: trailing-whitespace
         args: [--markdown-linebreak-ext=md]
         exclude: ^(docs/)
@@ -53,3 +54,7 @@ repos:
       - id: conventional-pre-commit
         stages: [commit-msg]
         args: [feat, fix, ci, chore, test, docs]
+  - repo: https://github.com/kynan/nbstripout
+    rev: 0.7.1
+    hooks:
+        - id: nbstripout
