@@ -8,7 +8,7 @@ import re
 from abc import ABC, abstractmethod
 from functools import reduce
 from pathlib import Path
-from typing import Any, List
+from typing import Any
 from warnings import warn
 
 import pandas as pd
@@ -686,7 +686,7 @@ class Forecast(ABC):
             coverages,
         )
 
-    def _get_forecast_horizons(self, coverage_ids: List[str]) -> List[List[int]]:
+    def _get_forecast_horizons(self, coverage_ids: list[str]) -> list[list[int]]:
         """
         Retrieve the times for each coverage_id.
         Parameters:
@@ -724,7 +724,7 @@ class Forecast(ABC):
 
         return sorted(common_forecast_horizons)
 
-    def _validate_forecast_horizons(self, coverage_ids: List[str], forecast_horizons: List[int]) -> List[str]:
+    def _validate_forecast_horizons(self, coverage_ids: list[str], forecast_horizons: list[int]) -> list[str]:
         """
         Validate forecast_horizons for a list of coverage IDs.
         Parameters:
