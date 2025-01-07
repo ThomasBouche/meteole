@@ -542,7 +542,7 @@ class Forecast(ABC):
             features = feature_grid_axis[0]["gmlrgrid:GeneralGridAxis"]["gmlrgrid:coefficients"].split(" ")
             features = [int(feature) for feature in features]
         return features
-    
+
     def get_combined_coverage(
         self,
         indicator_names: List[str],
@@ -610,7 +610,7 @@ class Forecast(ABC):
         # Check forecast_horizons is valid for all indicators
         if forecast_horizons is not None:
             coverage_ids = [cid for run_coverage in coverage_ids_by_run.values() for cid, _, _ in run_coverage]
-            invalid_coverage_ids = self.validate_forecast_horizons(coverage_ids, forecast_horizons)
+            invalid_coverage_ids = self._validate_forecast_horizons(coverage_ids, forecast_horizons)
             if invalid_coverage_ids:
                 raise ValueError(f"{forecast_horizons} are not valid for this coverage_ids : {invalid_coverage_ids}")
 
@@ -643,7 +643,7 @@ class Forecast(ABC):
 
         return final_df
 
-    def get_forecast_horizons(self, coverage_ids: List[str]) -> List[List[int]]:
+    def _get_forecast_horizons(self, coverage_ids: List[str]) -> List[List[int]]:
         """
         Retrieve the times for each coverage_id.
         Parameters:
@@ -669,7 +669,7 @@ class Forecast(ABC):
         Returns:
         List[int]: Common forecast_horizons
         """
-        indicator_forecast_horizons = self.get_forecast_horizons(list_coverage_id)
+        indicator_forecast_horizons = self._get_forecast_horizons(list_coverage_id)
 
         common_forecast_horizons = indicator_forecast_horizons[0]
         for times in indicator_forecast_horizons[1:]:
@@ -681,7 +681,7 @@ class Forecast(ABC):
 
         return sorted(common_forecast_horizons)
 
-    def validate_forecast_horizons(self, coverage_ids: List[str], forecast_horizons: List[int]) -> List[str]:
+    def _validate_forecast_horizons(self, coverage_ids: List[str], forecast_horizons: List[int]) -> List[str]:
         """
         Validate forecast_horizons for a list of coverage IDs.
         Parameters:
@@ -690,7 +690,7 @@ class Forecast(ABC):
         Returns:
         List[str]: List of invalid coverage IDs.
         """
-        indicator_forecast_horizons = self.get_forecast_horizons(coverage_ids)
+        indicator_forecast_horizons = self._get_forecast_horizons(coverage_ids)
 
         invalid_coverage_ids = [
             coverage_id

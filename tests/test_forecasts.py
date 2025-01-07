@@ -188,7 +188,30 @@ class TestAromeForecast(unittest.TestCase):
     @patch("meteole._arome.AromeForecast._transform_grib_to_df")
     @patch("meteole._arome.AromeForecast._get_coverage_file")
     def test_get_data_single_forecast(self, mock_get_coverage_file, mock_transform_grib_to_df, mock_get_capabilities):
-        mock_transform_grib_to_df.return_value = pd.DataFrame({"data": [1, 2, 3], "heightAboveGround": ["1", "2", "3"]})
+        mock_transform_grib_to_df.return_value = pd.DataFrame({"data": [1, 2, 3]})
+
+        forecast = AromeForecast(
+            self.client,
+            precision=self.precision,
+            territory=self.territory,
+        )
+
+        df = forecast._get_data_single_forecast(
+            coverage_id="coverage_1",
+            height=None,
+            pressure=None,
+            forecast_horizon=0,
+            lat=(37.5, 55.4),
+            long=(-12, 16),
+        )
+
+        self.assertTrue("data" in df.columns)
+
+    @patch("meteole._arome.AromeForecast.get_capabilities")
+    @patch("meteole._arome.AromeForecast._transform_grib_to_df")
+    @patch("meteole._arome.AromeForecast._get_coverage_file")
+    def test_get_data_single_forecast_with_height(self, mock_get_coverage_file, mock_transform_grib_to_df, mock_get_capabilities):
+        mock_transform_grib_to_df.return_value = pd.DataFrame({"data": [1, 2, 3], "heightAboveGround": ["2", "2", "2"]})
 
         forecast = AromeForecast(
             self.client,
@@ -205,7 +228,7 @@ class TestAromeForecast(unittest.TestCase):
             long=(-12, 16),
         )
 
-        self.assertTrue("data" in df.columns)
+        self.assertTrue("data_2m" in df.columns)
 
     @patch("meteole._arome.AromeForecast.get_coverage_description")
     @patch("meteole._arome.AromeForecast.get_capabilities")
@@ -240,6 +263,402 @@ class TestAromeForecast(unittest.TestCase):
         mock_get_data_single_forecast.assert_called_once_with(
             coverage_id="toto", height=2, pressure=None, forecast_horizon=0, lat=(37.5, 55.4), long=(-12, 16)
         )
+
+    @patch("meteole._arome.AromeForecast.get_coverage_description")
+    def test_get_forecast_horizons(self, mock_get_coverage_description):
+        def side_effect(coverage_id):
+            if coverage_id == "id1":
+                return {"forecast_horizons": [0, 1, 2], "heights": [], "pressures": []}
+            elif coverage_id == "id2":
+                return {"forecast_horizons": [0, 2, 3], "heights": [], "pressures": []}
+
+        mock_get_coverage_description.side_effect = side_effect
+
+        forecast = AromeForecast(
+            self.client,
+            precision=self.precision,
+            territory=self.territory,
+        )
+
+        coverage_ids = ["id1", "id2"]
+        expected_result = [[0, 1, 2], [0, 2, 3]]
+        result = forecast._get_forecast_horizons(coverage_ids)
+        self.assertEqual(result, expected_result)
+
+    @patch("meteole._arome.AromeForecast._get_forecast_horizons")
+    def test_find_common_forecast_horizons(self, mock_get_forecast_horizons):
+        mock_get_forecast_horizons.return_value = [[0, 1, 2, 3], [2, 3, 4, 5], [1, 2, 3, 6]]
+
+        list_coverage_id = ["id1", "id2", "id3"]
+        expected_result = [2, 3]
+
+        forecast = AromeForecast(
+            self.client,
+            precision=self.precision,
+            territory=self.territory,
+        )
+        result = forecast.find_common_forecast_horizons(list_coverage_id)
+        self.assertEqual(result, expected_result)
+
+    @patch("meteole._arome.AromeForecast._get_forecast_horizons")
+    def test_validate_forecast_horizons_valid(self, mock_get_forecast_horizons):
+        mock_get_forecast_horizons.return_value = [[0, 1, 2, 3], [2, 3, 4, 5]]
+
+        coverage_ids = ["id1", "id2"]
+        forecast_horizons = [2, 3]
+        expected_result = []
+
+        forecast = AromeForecast(
+            self.client,
+            precision=self.precision,
+            territory=self.territory,
+        )
+        result = forecast._validate_forecast_horizons(coverage_ids, forecast_horizons)
+        self.assertEqual(result, expected_result)
+
+    @patch("meteole._arome.AromeForecast._get_forecast_horizons")
+    def test_validate_forecast_horizons_invalid(self, mock_get_forecast_horizons):
+        mock_get_forecast_horizons.return_value = [[0, 1, 2, 3], [2, 3, 4, 5]]
+
+        coverage_ids = ["id1", "id2"]
+        forecast_horizons = [1, 2]
+        expected_result = ["id2"]
+
+        forecast = AromeForecast(
+            self.client,
+            precision=self.precision,
+            territory=self.territory,
+        )
+        result = forecast._validate_forecast_horizons(coverage_ids, forecast_horizons)
+        self.assertEqual(result, expected_result)
+
+    @patch("meteole._arome.AromeForecast._get_coverage_id")
+    @patch("meteole._arome.AromeForecast.find_common_forecast_horizons")
+    @patch("meteole._arome.AromeForecast._validate_forecast_horizons")
+    @patch("meteole._arome.AromeForecast.get_coverage")
+    def test_get_combined_coverage(
+        self,
+        mock_get_coverage,
+        mock_validate_forecast_horizons,
+        mock_find_common_forecast_horizons,
+        mock_get_coverage_id,
+    ):
+        mock_get_coverage_id.side_effect = lambda indicator, run, interval: f"{indicator}_{run}_{interval}"
+        mock_find_common_forecast_horizons.return_value = [0]
+        mock_validate_forecast_horizons.return_value = []
+        mock_get_coverage.side_effect = [
+            pd.DataFrame(
+                {
+                    "latitude": [1, 2],
+                    "longitude": [3, 4],
+                    "run": ["2024-12-13T00.00.00Z", "2024-12-13T00.00.00Z"],
+                    "forecast_horizon": [0, 0],
+                    "data1": [10, 20],
+                }
+            ),
+            pd.DataFrame(
+                {
+                    "latitude": [1, 2],
+                    "longitude": [3, 4],
+                    "run": ["2024-12-13T00.00.00Z", "2024-12-13T00.00.00Z"],
+                    "forecast_horizon": [0, 0],
+                    "data2": [30, 40],
+                }
+            ),
+        ]
+
+        indicator_names = [
+            "GEOMETRIC_HEIGHT__GROUND_OR_WATER_SURFACE",
+            "BRIGHTNESS_TEMPERATURE__GROUND_OR_WATER_SURFACE",
+        ]
+        runs = ["2024-12-13T00.00.00Z"]
+        heights = [None, 2]
+        pressures = [None, None]
+        intervals = ["", "P1D"]
+        lat = (37.5, 55.4)
+        long = (-12, 16)
+        forecast_horizons = [0]
+
+        expected_result = pd.DataFrame(
+            {
+                "latitude": [1, 2],
+                "longitude": [3, 4],
+                "run": ["2024-12-13T00.00.00Z", "2024-12-13T00.00.00Z"],
+                "forecast_horizon": [0, 0],
+                "data1": [10, 20],
+                "data2": [30, 40],
+            }
+        )
+
+        forecast = AromeForecast(
+            self.client,
+            precision=self.precision,
+            territory=self.territory,
+        )
+
+        result = forecast.get_combined_coverage(
+            indicator_names, runs, heights, pressures, intervals, lat, long, forecast_horizons
+        )
+        pd.testing.assert_frame_equal(result, expected_result)
+
+    @patch("meteole._arome.AromeForecast._get_coverage_id")
+    @patch("meteole._arome.AromeForecast.find_common_forecast_horizons")
+    @patch("meteole._arome.AromeForecast._validate_forecast_horizons")
+    @patch("meteole._arome.AromeForecast.get_coverage")
+    def test_get_combined_coverage_invalid_forecast_horizons(
+        self,
+        mock_get_coverage,
+        mock_validate_forecast_horizons,
+        mock_find_common_forecast_horizons,
+        mock_get_coverage_id,
+    ):
+        mock_get_coverage_id.side_effect = lambda indicator, run, interval: f"{indicator}_{run}_{interval}"
+        mock_find_common_forecast_horizons.return_value = [0]
+        mock_validate_forecast_horizons.return_value = [
+            "GEOMETRIC_HEIGHT__GROUND_OR_WATER_SURFACE_2024-12-13T00.00.00Z"
+        ]
+
+        indicator_names = [
+            "GEOMETRIC_HEIGHT__GROUND_OR_WATER_SURFACE",
+            "BRIGHTNESS_TEMPERATURE__GROUND_OR_WATER_SURFACE",
+        ]
+        runs = ["2024-12-13T00.00.00Z"]
+        heights = [None, 2]
+        pressures = [None, None]
+        intervals = ["", "P1D"]
+        lat = (37.5, 55.4)
+        long = (-12, 16)
+        forecast_horizons = [0]
+
+        forecast = AromeForecast(
+            self.client,
+            precision=self.precision,
+            territory=self.territory,
+        )
+
+        with self.assertRaises(ValueError) as context:
+            forecast.get_combined_coverage(
+                indicator_names, runs, heights, pressures, intervals, lat, long, forecast_horizons
+            )
+        self.assertIn("are not valid for this coverage_ids", str(context.exception))
+
+    @patch("meteole._arome.AromeForecast._get_coverage_id")
+    @patch("meteole._arome.AromeForecast.find_common_forecast_horizons")
+    @patch("meteole._arome.AromeForecast._validate_forecast_horizons")
+    @patch("meteole._arome.AromeForecast.get_coverage")
+    def test_get_combined_coverage_multiple_runs(
+        self,
+        mock_get_coverage,
+        mock_validate_forecast_horizons,
+        mock_find_common_forecast_horizons,
+        mock_get_coverage_id,
+    ):
+        # Mock return values
+        mock_get_coverage_id.side_effect = lambda indicator, run, interval: f"{indicator}_{run}_{interval}"
+        mock_find_common_forecast_horizons.return_value = [0]
+        mock_validate_forecast_horizons.return_value = []
+        mock_get_coverage.side_effect = [
+            pd.DataFrame(
+                {
+                    "latitude": [1, 2],
+                    "longitude": [3, 4],
+                    "run": ["2024-12-13T00.00.00Z", "2024-12-13T00.00.00Z"],
+                    "forecast_horizon": [0, 0],
+                    "data1": [10, 20],
+                }
+            ),
+            pd.DataFrame(
+                {
+                    "latitude": [1, 2],
+                    "longitude": [3, 4],
+                    "run": ["2024-12-13T00.00.00Z", "2024-12-13T00.00.00Z"],
+                    "forecast_horizon": [0, 0],
+                    "data2": [30, 40],
+                }
+            ),
+            pd.DataFrame(
+                {
+                    "latitude": [1, 2],
+                    "longitude": [3, 4],
+                    "run": ["2024-12-14T00.00.00Z", "2024-12-14T00.00.00Z"],
+                    "forecast_horizon": [0, 0],
+                    "data1": [100, 200],
+                }
+            ),
+            pd.DataFrame(
+                {
+                    "latitude": [1, 2],
+                    "longitude": [3, 4],
+                    "run": ["2024-12-14T00.00.00Z", "2024-12-14T00.00.00Z"],
+                    "forecast_horizon": [0, 0],
+                    "data2": [300, 400],
+                }
+            ),
+        ]
+
+        indicator_names = [
+            "GEOMETRIC_HEIGHT__GROUND_OR_WATER_SURFACE",
+            "BRIGHTNESS_TEMPERATURE__GROUND_OR_WATER_SURFACE",
+        ]
+        runs = ["2024-12-13T00.00.00Z", "2024-12-14T00.00.00Z"]
+        heights = [None, 2]
+        pressures = [None, None]
+        intervals = ["", "P1D"]
+        lat = (37.5, 55.4)
+        long = (-12, 16)
+        forecast_horizons = [0]
+
+        expected_result = pd.DataFrame(
+            {
+                "latitude": [1, 2, 1, 2],
+                "longitude": [3, 4, 3, 4],
+                "run": ["2024-12-13T00.00.00Z", "2024-12-13T00.00.00Z", "2024-12-14T00.00.00Z", "2024-12-14T00.00.00Z"],
+                "forecast_horizon": [0, 0, 0, 0],
+                "data1": [10, 20, 100, 200],
+                "data2": [30, 40, 300, 400],
+            }
+        )
+
+        forecast = AromeForecast(
+            self.client,
+            precision=self.precision,
+            territory=self.territory,
+        )
+
+        result = forecast.get_combined_coverage(
+            indicator_names, runs, heights, pressures, intervals, lat, long, forecast_horizons
+        )
+        pd.testing.assert_frame_equal(result, expected_result)
+
+    @patch("meteole._arome.AromeForecast._get_coverage_id")
+    @patch("meteole._arome.AromeForecast.find_common_forecast_horizons")
+    @patch("meteole._arome.AromeForecast._validate_forecast_horizons")
+    @patch("meteole._arome.AromeForecast.get_coverage")
+    def test_get_combined_coverage_no_heights_or_pressures(
+        self,
+        mock_get_coverage,
+        mock_validate_forecast_horizons,
+        mock_find_common_forecast_horizons,
+        mock_get_coverage_id,
+    ):
+        mock_get_coverage_id.side_effect = lambda indicator, run, interval: f"{indicator}_{run}_{interval}"
+        mock_find_common_forecast_horizons.return_value = [0]
+        mock_validate_forecast_horizons.return_value = []
+        mock_get_coverage.side_effect = [
+            pd.DataFrame(
+                {
+                    "latitude": [1, 2],
+                    "longitude": [3, 4],
+                    "run": ["2024-12-13T00.00.00Z", "2024-12-13T00.00.00Z"],
+                    "forecast_horizon": [0, 0],
+                    "data1": [10, 20],
+                }
+            ),
+            pd.DataFrame(
+                {
+                    "latitude": [1, 2],
+                    "longitude": [3, 4],
+                    "run": ["2024-12-13T00.00.00Z", "2024-12-13T00.00.00Z"],
+                    "forecast_horizon": [0, 0],
+                    "data2": [30, 40],
+                }
+            ),
+        ]
+
+        indicator_names = [
+            "GEOMETRIC_HEIGHT__GROUND_OR_WATER_SURFACE",
+            "BRIGHTNESS_TEMPERATURE__GROUND_OR_WATER_SURFACE",
+        ]
+        runs = ["2024-12-13T00.00.00Z"]
+        heights = None
+        pressures = None
+        intervals = ["", "P1D"]
+        lat = (37.5, 55.4)
+        long = (-12, 16)
+        forecast_horizons = [0]
+
+        expected_result = pd.DataFrame(
+            {
+                "latitude": [1, 2],
+                "longitude": [3, 4],
+                "run": ["2024-12-13T00.00.00Z", "2024-12-13T00.00.00Z"],
+                "forecast_horizon": [0, 0],
+                "data1": [10, 20],
+                "data2": [30, 40],
+            }
+        )
+
+        forecast = AromeForecast(
+            self.client,
+            precision=self.precision,
+            territory=self.territory,
+        )
+
+        result = forecast.get_combined_coverage(
+            indicator_names, runs, heights, pressures, intervals, lat, long, forecast_horizons
+        )
+        pd.testing.assert_frame_equal(result, expected_result)
+
+    @patch("meteole._arome.AromeForecast._get_coverage_id")
+    @patch("meteole._arome.AromeForecast.find_common_forecast_horizons")
+    @patch("meteole._arome.AromeForecast._validate_forecast_horizons")
+    @patch("meteole._arome.AromeForecast.get_coverage")
+    def test_get_combined_coverage_no_optional_params(
+        self,
+        mock_get_coverage,
+        mock_validate_forecast_horizons,
+        mock_find_common_forecast_horizons,
+        mock_get_coverage_id,
+    ):
+        mock_get_coverage_id.side_effect = lambda indicator, run, interval: f"{indicator}_{run}_{interval}"
+        mock_find_common_forecast_horizons.return_value = [0]
+        mock_validate_forecast_horizons.return_value = []
+        mock_get_coverage.side_effect = [
+            pd.DataFrame(
+                {
+                    "latitude": [1, 2],
+                    "longitude": [3, 4],
+                    "run": ["2024-12-13T00.00.00Z", "2024-12-13T00.00.00Z"],
+                    "forecast_horizon": [0, 0],
+                    "data1": [10, 20],
+                }
+            ),
+            pd.DataFrame(
+                {
+                    "latitude": [1, 2],
+                    "longitude": [3, 4],
+                    "run": ["2024-12-13T00.00.00Z", "2024-12-13T00.00.00Z"],
+                    "forecast_horizon": [0, 0],
+                    "data2": [30, 40],
+                }
+            ),
+        ]
+
+        indicator_names = [
+            "GEOMETRIC_HEIGHT__GROUND_OR_WATER_SURFACE",
+            "BRIGHTNESS_TEMPERATURE__GROUND_OR_WATER_SURFACE",
+        ]
+        runs = ["2024-12-13T00.00.00Z"]
+
+        expected_result = pd.DataFrame(
+            {
+                "latitude": [1, 2],
+                "longitude": [3, 4],
+                "run": ["2024-12-13T00.00.00Z", "2024-12-13T00.00.00Z"],
+                "forecast_horizon": [0, 0],
+                "data1": [10, 20],
+                "data2": [30, 40],
+            }
+        )
+
+        forecast = AromeForecast(
+            self.client,
+            precision=self.precision,
+            territory=self.territory,
+        )
+
+        result = forecast.get_combined_coverage(indicator_names, runs)
+        pd.testing.assert_frame_equal(result, expected_result)
 
 
 class TestArpegeForecast(unittest.TestCase):
