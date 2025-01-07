@@ -546,7 +546,7 @@ class Forecast(ABC):
     def get_combined_coverage(
         self,
         indicator_names: list[str],
-        runs: list[str],
+        runs: list[str | None] | None = None,
         heights: list[int] | None = None,
         pressures: list[int] | None = None,
         intervals: list[str | None] | None = None,
@@ -579,6 +579,8 @@ class Forecast(ABC):
             ValueError: If the length of `heights` does not match the length of `indicator_names`.
 
         """
+        if not runs:
+            runs = [None]
         coverages = [
             self._get_combined_coverage_for_single_run(
                 indicator_names=indicator_names,
@@ -597,7 +599,7 @@ class Forecast(ABC):
     def _get_combined_coverage_for_single_run(
         self,
         indicator_names: list[str],
-        run: str,
+        run: str | None = None,
         heights: list[int] | None = None,
         pressures: list[int] | None = None,
         intervals: list[str | None] | None = None,
@@ -663,6 +665,7 @@ class Forecast(ABC):
         coverages = [
             self.get_coverage(
                 coverage_id=coverage_id,
+                run=run,
                 lat=lat,
                 long=long,
                 heights=[height] if height is not None else [],
