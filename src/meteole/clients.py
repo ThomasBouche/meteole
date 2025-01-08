@@ -59,7 +59,7 @@ class MeteoFranceClient(BaseClient):
     TOKEN_URL: str = "https://portail-api.meteofrance.fr/token"
     GET_TOKEN_TIMEOUT_SEC: int = 10
     INVALID_JWT_ERROR_CODE: str = "900901"
-    RETRY_DELAY_SEC: int = 5
+    RETRY_DELAY_SEC: int = 10
 
     def __init__(
         self,
@@ -109,43 +109,50 @@ class MeteoFranceClient(BaseClient):
 
         while attempt < max_retries:
             # HTTP GET request
-            resp: Response = self._session.get(url, params=params, verify=self._verify)
+            try:
+                resp: Response = self._session.get(url, params=params, verify=self._verify)
 
-            if resp.status_code == HttpStatus.OK:
-                logger.debug("Successful request")
-                return resp
+                if resp.status_code == HttpStatus.OK:
+                    logger.debug("Successful request")
+                    return resp
 
-            elif self._is_token_expired(resp):
-                logger.info("Token expired, requesting a new one")
+                elif self._is_token_expired(resp):
+                    logger.info("Token expired, requesting a new one")
 
-                # Refresh the cached token
-                self._token = self._get_token()
+                    # Refresh the cached token
+                    self._token = self._get_token()
 
-                # Reconnect with the new token
-                self._connect()
+                    # Reconnect with the new token
+                    self._connect()
 
-            elif resp.status_code == HttpStatus.FORBIDDEN:
-                logger.error("Access forbidden")
-                raise GenericMeteofranceApiError(resp.text)
+                elif resp.status_code == HttpStatus.FORBIDDEN:
+                    logger.error("Access forbidden")
+                    raise GenericMeteofranceApiError(resp.text)
 
-            elif resp.status_code == HttpStatus.BAD_REQUEST:
-                logger.error("Parameter error")
-                raise GenericMeteofranceApiError(resp.text)
+                elif resp.status_code == HttpStatus.BAD_REQUEST:
+                    logger.error("Parameter error")
+                    raise GenericMeteofranceApiError(resp.text)
 
-            elif resp.status_code == HttpStatus.NOT_FOUND:
-                logger.error("Missing data")
-                raise MissingDataError(resp.text)
+                elif resp.status_code == HttpStatus.NOT_FOUND:
+                    logger.error("Missing data")
+                    raise MissingDataError(resp.text)
 
-            elif (
-                resp.status_code == HttpStatus.BAD_GATEWAY
-                or resp.status_code == HttpStatus.UNAVAILABLE
-                or resp.status_code == HttpStatus.GATEWAY_TIMEOUT
-            ):
-                logger.error("Service not available")
-                time.sleep(self.RETRY_DELAY_SEC)
-                attempt += 1
-                logger.info(f"Retrying... Attempt {attempt} of {max_retries}")
-                continue
+                elif (
+                    resp.status_code == HttpStatus.BAD_GATEWAY
+                    or resp.status_code == HttpStatus.UNAVAILABLE
+                    or resp.status_code == HttpStatus.GATEWAY_TIMEOUT
+                ):
+                    logger.error("Service not available")
+
+            except ConnectionError as e:
+                logger.warning(f"Connection error : {e}.")
+
+            # Wait before retrying
+            attempt += 1
+            waiting_time = attempt * self.RETRY_DELAY_SEC
+            logger.info(f"Retrying (attempt {attempt}/{max_retries}) - waiting {waiting_time}s before retrying...")
+            time.sleep(waiting_time)
+            continue
 
         raise GenericMeteofranceApiError(f"Failed to get a successful response from API after {attempt} retries")
 
