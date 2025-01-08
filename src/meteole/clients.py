@@ -144,7 +144,7 @@ class MeteoFranceClient(BaseClient):
                 ):
                     logger.error("Service not available")
 
-            except ConnectionError as e:
+            except requests.exceptions.ConnectionError as e:
                 logger.warning(f"Connection error : {e}.")
 
             # Wait before retrying
