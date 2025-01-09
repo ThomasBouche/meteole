@@ -1,3 +1,4 @@
+import os
 import unittest
 from pathlib import Path
 from unittest.mock import MagicMock, patch
@@ -169,7 +170,7 @@ class TestAromeForecast(unittest.TestCase):
         )
 
         coverage_id = "coverage_1"
-        forecast._get_coverage_file(
+        path = forecast._get_coverage_file(
             coverage_id=coverage_id,
             height=2,
             forecast_horizon_in_seconds=0,
@@ -177,12 +178,12 @@ class TestAromeForecast(unittest.TestCase):
             long=(-12, 16),
         )
 
-        import os
-
         expected_path = Path(os.getcwd()) / coverage_id / "2m_0Z_37.5-55.4_-12-16.grib"
         self.assertTrue(expected_path.exists())
+        self.assertTrue(expected_path == path)
 
-        expected_path.unlink()
+        # remove the folder created in _get_coverage_file
+        forecast._remove_coverage_files(path)
 
     @patch("meteole._arome.AromeForecast.get_capabilities")
     @patch("meteole._arome.AromeForecast._transform_grib_to_df")
