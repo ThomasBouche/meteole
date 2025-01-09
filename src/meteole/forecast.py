@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import datetime as dt
-import glob
 import logging
 import os
 import re
@@ -377,11 +376,6 @@ class Forecast(ABC):
 
         ds = xr.open_dataset(self.filepath, engine="cfgrib")
         df = ds.to_dataframe().reset_index()
-        os.remove(str(self.filepath))
-        idx_files = glob.glob(f"{self.filepath}.*.idx")
-        for idx_file in idx_files:
-            os.remove(idx_file)
-
         return df
 
     def _get_data_single_forecast(
@@ -407,7 +401,7 @@ class Forecast(ABC):
             pd.DataFrame: The forecast for the specified time.
         """
 
-        self._get_coverage_file(
+        filepath = self._get_coverage_file(
             coverage_id=coverage_id,
             height=height,
             pressure=pressure,
@@ -417,6 +411,8 @@ class Forecast(ABC):
         )
 
         df = self._transform_grib_to_df()
+
+        self._remove_coverage_files(filepath)
 
         df.drop(columns=["surface", "valid_time"], errors="ignore", inplace=True)
         df.rename(
@@ -452,6 +448,42 @@ class Forecast(ABC):
         )
 
         return df
+
+    def _remove_coverage_files(self, filepath: Path) -> None:
+        """
+        Removes a coverage file and its associated index files (.idx).
+
+        If the parent directory becomes empty after file removal, it deletes the parent directory.
+
+        Args:
+            filepath (Path): Path to the main coverage file to be removed.
+
+        Raises:
+            FileNotFoundError: If the specified file does not exist.
+            PermissionError: If the file or directory cannot be removed due to insufficient permissions.
+        """
+        # Ensure filepath is a Path object
+        filepath = Path(filepath)
+
+        # remove file
+        os.remove(str(filepath))
+        # Remove the main file
+        if filepath.exists():
+            filepath.unlink()
+
+        # remove potential idx files
+        idx_files = filepath.parent.glob(f"{filepath.name}.*.idx")
+        for idx_file in idx_files:
+            os.remove(idx_file)
+
+        # Remove the parent directory if it's empty
+        parent_dir = filepath.parent
+        try:
+            if not any(parent_dir.iterdir()):  # Check if the directory is empty
+                parent_dir.rmdir()
+        except OSError as e:
+            # Handle potential errors (e.g., directory in use or permissions issue)
+            raise PermissionError(f"Failed to remove directory '{parent_dir}': {e}") from e
 
     def _get_coverage_file(
         self,

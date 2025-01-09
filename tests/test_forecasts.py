@@ -1,3 +1,4 @@
+import os
 import unittest
 from pathlib import Path
 from unittest.mock import MagicMock, patch
@@ -169,7 +170,7 @@ class TestAromeForecast(unittest.TestCase):
         )
 
         coverage_id = "coverage_1"
-        forecast._get_coverage_file(
+        path = forecast._get_coverage_file(
             coverage_id=coverage_id,
             height=2,
             forecast_horizon_in_seconds=0,
@@ -177,17 +178,20 @@ class TestAromeForecast(unittest.TestCase):
             long=(-12, 16),
         )
 
-        import os
-
         expected_path = Path(os.getcwd()) / coverage_id / "2m_0Z_37.5-55.4_-12-16.grib"
         self.assertTrue(expected_path.exists())
+        self.assertTrue(expected_path == path)
 
-        expected_path.unlink()
+        # remove the folder created in _get_coverage_file
+        forecast._remove_coverage_files(path)
 
     @patch("meteole._arome.AromeForecast.get_capabilities")
     @patch("meteole._arome.AromeForecast._transform_grib_to_df")
     @patch("meteole._arome.AromeForecast._get_coverage_file")
-    def test_get_data_single_forecast(self, mock_get_coverage_file, mock_transform_grib_to_df, mock_get_capabilities):
+    @patch("meteole._arome.AromeForecast._remove_coverage_files")
+    def test_get_data_single_forecast(
+        self, mock_remove_coverage_files, mock_get_coverage_file, mock_transform_grib_to_df, mock_get_capabilities
+    ):
         mock_transform_grib_to_df.return_value = pd.DataFrame({"data": [1, 2, 3]})
 
         forecast = AromeForecast(
@@ -210,8 +214,9 @@ class TestAromeForecast(unittest.TestCase):
     @patch("meteole._arome.AromeForecast.get_capabilities")
     @patch("meteole._arome.AromeForecast._transform_grib_to_df")
     @patch("meteole._arome.AromeForecast._get_coverage_file")
+    @patch("meteole._arome.AromeForecast._remove_coverage_files")
     def test_get_data_single_forecast_with_height(
-        self, mock_get_coverage_file, mock_transform_grib_to_df, mock_get_capabilities
+        self, mock_remove_coverage_files, mock_get_coverage_file, mock_transform_grib_to_df, mock_get_capabilities
     ):
         mock_transform_grib_to_df.return_value = pd.DataFrame({"data": [1, 2, 3], "heightAboveGround": ["2", "2", "2"]})
 
