@@ -187,7 +187,10 @@ class TestAromeForecast(unittest.TestCase):
     @patch("meteole._arome.AromeForecast.get_capabilities")
     @patch("meteole._arome.AromeForecast._transform_grib_to_df")
     @patch("meteole._arome.AromeForecast._get_coverage_file")
-    def test_get_data_single_forecast(self, mock_get_coverage_file, mock_transform_grib_to_df, mock_get_capabilities):
+    @patch("meteole._arome.AromeForecast._remove_coverage_files")
+    def test_get_data_single_forecast(
+        self, mock_remove_coverage_files, mock_get_coverage_file, mock_transform_grib_to_df, mock_get_capabilities
+    ):
         mock_transform_grib_to_df.return_value = pd.DataFrame({"data": [1, 2, 3]})
 
         forecast = AromeForecast(
@@ -210,8 +213,9 @@ class TestAromeForecast(unittest.TestCase):
     @patch("meteole._arome.AromeForecast.get_capabilities")
     @patch("meteole._arome.AromeForecast._transform_grib_to_df")
     @patch("meteole._arome.AromeForecast._get_coverage_file")
+    @patch("meteole._arome.AromeForecast._remove_coverage_files")
     def test_get_data_single_forecast_with_height(
-        self, mock_get_coverage_file, mock_transform_grib_to_df, mock_get_capabilities
+        self, mock_remove_coverage_files, mock_get_coverage_file, mock_transform_grib_to_df, mock_get_capabilities
     ):
         mock_transform_grib_to_df.return_value = pd.DataFrame({"data": [1, 2, 3], "heightAboveGround": ["2", "2", "2"]})
 
