@@ -394,9 +394,6 @@ class Forecast(ABC):
             - The temporary file used for parsing is automatically deleted after use.
             - Ensure the input GRIB data is valid and encoded in a binary format.
         """
-        # Ensure grib_str is in bytes format
-        if not isinstance(grib_str, (bytes, bytearray)):
-            raise ValueError("grib_str must be a bytes or bytearray object.")
 
         with tempfile.NamedTemporaryFile(delete=True) as temp_file:
             # Write the GRIB binary data to the temporary file
@@ -434,7 +431,7 @@ class Forecast(ABC):
             pd.DataFrame: The forecast for the specified time.
         """
 
-        grib_str = self._get_coverage_file(
+        grib_str: bytes = self._get_coverage_file(
             coverage_id=coverage_id,
             height=height,
             pressure=pressure,
