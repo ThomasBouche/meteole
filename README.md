@@ -136,5 +136,5 @@ and general hints on how to prepare your pull request. You can also ask for clar
 
 This project is Open Source and available under the Apache 2 License.
 
-## 🤝 Contributors
+## 🙏 Acknowledgements
 The development of Meteole was inspired by the excellent work in the [meteofranceapi](https://github.com/antoinetavant/meteofranceapi) repository by Antoine Tavant.
