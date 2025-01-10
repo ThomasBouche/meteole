@@ -395,7 +395,7 @@ class Forecast(ABC):
             - Ensure the input GRIB data is valid and encoded in a binary format.
         """
 
-        with tempfile.NamedTemporaryFile(delete=True) as temp_file:
+        with tempfile.NamedTemporaryFile() as temp_file:
             # Write the GRIB binary data to the temporary file
             temp_file.write(grib_str)
             temp_file.flush()  # Ensure the data is written to disk
@@ -431,7 +431,7 @@ class Forecast(ABC):
             pd.DataFrame: The forecast for the specified time.
         """
 
-        grib_str: bytes = self._get_coverage_file(
+        grib_binary: bytes = self._get_coverage_file(
             coverage_id=coverage_id,
             height=height,
             pressure=pressure,
@@ -440,7 +440,7 @@ class Forecast(ABC):
             long=long,
         )
 
-        df = self._grib_bytes_to_df(grib_str)
+        df: pd.DataFrame = self._grib_bytes_to_df(grib_binary)
 
         # Drop and rename columns
         df.drop(columns=["surface", "valid_time"], errors="ignore", inplace=True)
