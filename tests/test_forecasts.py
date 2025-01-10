@@ -156,10 +156,10 @@ class TestAromeForecast(unittest.TestCase):
         self.assertIn("wcs:CoverageDescriptions", description)
 
     @patch("meteole._arome.AromeForecast.get_capabilities")
-    @patch("meteole._arome.AromeForecast._grib_str_to_df")
+    @patch("meteole._arome.AromeForecast._grib_bytes_to_df")
     @patch("meteole._arome.AromeForecast._get_coverage_file")
-    def test_get_data_single_forecast(self, mock_get_coverage_file, mock_grib_str_to_df, mock_get_capabilities):
-        mock_grib_str_to_df.return_value = pd.DataFrame({"data": [1, 2, 3]})
+    def test_get_data_single_forecast(self, mock_get_coverage_file, mock_grib_bytes_to_df, mock_get_capabilities):
+        mock_grib_bytes_to_df.return_value = pd.DataFrame({"data": [1, 2, 3]})
 
         forecast = AromeForecast(
             self.client,
@@ -179,13 +179,13 @@ class TestAromeForecast(unittest.TestCase):
         self.assertTrue("data" in df.columns)
 
     @patch("meteole._arome.AromeForecast.get_capabilities")
-    @patch("meteole._arome.AromeForecast._grib_str_to_df")
+    @patch("meteole._arome.AromeForecast._grib_bytes_to_df")
     @patch("meteole._arome.AromeForecast._get_coverage_file")
     def test_get_data_single_forecast_with_height(
-        self, mock_get_coverage_file, mock_grib_str_to_df, mock_get_capabilities
+        self, mock_get_coverage_file, mock_grib_bytes_to_df, mock_get_capabilities
     ):
         mock_get_coverage_file.return_value = ""
-        mock_grib_str_to_df.return_value = pd.DataFrame({"data": [1, 2, 3], "heightAboveGround": ["2", "2", "2"]})
+        mock_grib_bytes_to_df.return_value = pd.DataFrame({"data": [1, 2, 3], "heightAboveGround": ["2", "2", "2"]})
 
         forecast = AromeForecast(
             self.client,

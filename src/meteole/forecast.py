@@ -370,7 +370,7 @@ class Forecast(ABC):
         response = self._client.get(url, params=params)
         return xmltodict.parse(response.text)
 
-    def _grib_str_to_df(self, grib_str: bytes) -> pd.DataFrame:
+    def _grib_bytes_to_df(self, grib_str: bytes) -> pd.DataFrame:
         """
         Converts GRIB data (in binary format) into a pandas DataFrame.
 
@@ -440,7 +440,7 @@ class Forecast(ABC):
             long=long,
         )
 
-        df = self._grib_str_to_df(grib_str)
+        df = self._grib_bytes_to_df(grib_str)
 
         # Drop and rename columns
         df.drop(columns=["surface", "valid_time"], errors="ignore", inplace=True)
