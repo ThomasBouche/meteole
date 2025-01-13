@@ -1,5 +1,5 @@
 <p align="center">
-  <a href="https://maif.github.io/meteole"><img src="docs/pages/assets/img/svg/meteole-fond-clair.svg" alt="meteole" width="50%"></a>
+  <a href="https://maif.github.io/meteole"><img src=""https://raw.githubusercontent.com/MAIF/meteole/main/docs/pages/assets/img/svg/meteole-fond-clair.svg" alt="meteole" width="50%"></a>
 </p>
 <p align="center">
     <em>Easy access to Météo-France weather models and data</em>
