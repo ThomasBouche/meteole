@@ -58,7 +58,8 @@ Meteole allows you to retrieve forecasts for a wide range of weather indicators.
 from meteole import AromeForecast
 
 # Initialize the AROME forecast client
-arome_client = AromeForecast(application_id=APPLICATION_ID)  # APPLICATION_ID found on portail.meteo-france.Fr
+# Find your APPLICATION_ID by following these guidelines: https://maif.github.io/meteole/how_to/?h=application_id#get-a-token-an-api-key-or-an-application-id
+arome_client = AromeForecast(application_id=APPLICATION_ID)
 
 # Check indicators available
 print(arome_client.indicators)
