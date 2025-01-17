@@ -1,5 +1,5 @@
 <p align="center">
-  <a href="https://maif.github.io/meteole"><img src="docs/pages/assets/img/svg/meteole-fond-clair.svg" alt="meteole" width="50%"></a>
+  <a href="https://maif.github.io/meteole"><img src="https://raw.githubusercontent.com/MAIF/meteole/main/docs/pages/assets/img/svg/meteole-fond-clair.svg" alt="meteole" width="50%"></a>
 </p>
 <p align="center">
     <em>Easy access to Météo-France weather models and data</em>
@@ -14,7 +14,7 @@
 
 ---
 
-**Documentation:** [https://pages.github.com/MAIF/meteole/home](https://pages.github.com/MAIF/meteole/home)
+**Documentation:** [https://maif.github.io/meteole/home/](https://maif.github.io/meteole/home/)
 
 **Repository:** [https://github.com/MAIF/meteole](https://github.com/MAIF/meteole)
 
@@ -58,10 +58,11 @@ Meteole allows you to retrieve forecasts for a wide range of weather indicators.
 from meteole import AromeForecast
 
 # Initialize the AROME forecast client
-arome_client = AromeForecast(application_id=APPLICATION_ID)  # APPLICATION_ID found on portail.meteo-france.Fr
+# Find your APPLICATION_ID by following these guidelines: https://maif.github.io/meteole/how_to/?h=application_id#get-a-token-an-api-key-or-an-application-id
+arome_client = AromeForecast(application_id=APPLICATION_ID)
 
 # Check indicators available
-print(arome_client.indicators)
+print(arome_client.INDICATORS)
 
 #Configure the logger to provide information on data recovery: recovery status, default settings, etc.
 import logging
@@ -143,5 +144,5 @@ and general hints on how to prepare your pull request. You can also ask for clar
 
 This project is Open Source and available under the Apache 2 License.
 
-## 🤝 Contributors
+## 🙏 Acknowledgements
 The development of Meteole was inspired by the excellent work in the [meteofranceapi](https://github.com/antoinetavant/meteofranceapi) repository by Antoine Tavant.
