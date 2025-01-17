@@ -61,7 +61,7 @@ from meteole import AromeForecast
 arome_client = AromeForecast(application_id=APPLICATION_ID)  # APPLICATION_ID found on portail.meteo-france.Fr
 
 # Check indicators available
-print(arome_client.indicators)
+print(arome_client.INDICATORS)
 
 #Configure the logger to provide information on data recovery: recovery status, default settings, etc.
 import logging

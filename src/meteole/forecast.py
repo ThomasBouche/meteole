@@ -7,7 +7,6 @@ import tempfile
 from abc import ABC, abstractmethod
 from functools import reduce
 from typing import Any
-from warnings import warn
 
 import pandas as pd
 import xarray as xr
@@ -90,25 +89,6 @@ class WeatherForecast(ABC):
         if self._capabilities is None:
             self._capabilities = self._build_capabilities()
         return self._capabilities
-
-    @property
-    def indicators(self) -> list[str]:
-        """Getter method of the indicators.
-
-        Indicators are identifying the kind of a predicted value (i.e., measurement).
-
-        Warning: This method is deprecated as INDICATORS is now a class constant.
-
-        Returns:
-            List of covered indicators.
-        """
-        warn(
-            "The 'indicators' attribute is deprecated, it will be removed soon. "
-            "Use 'INDICATORS' instead (class constant).",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        return self.INDICATORS
 
     @abstractmethod
     def _validate_parameters(self) -> None:
@@ -282,7 +262,7 @@ class WeatherForecast(ABC):
         capabilities = self.capabilities[self.capabilities["indicator"] == indicator]
 
         if indicator not in self.INDICATORS:
-            raise ValueError(f"Unknown `indicator` - checkout `{self.MODEL_NAME}.indicators` to have the full list.")
+            raise ValueError(f"Unknown `indicator` - checkout `{self.MODEL_NAME}.INDICATORS` to have the full list.")
 
         if run is None:
             run = capabilities.run.max()
