@@ -63,14 +63,21 @@ arome_client = AromeForecast(application_id=APPLICATION_ID)  # APPLICATION_ID fo
 # Check indicators available
 print(arome_client.indicators)
 
+#Configure the logger to provide information on data recovery: recovery status, default settings, etc.
+import logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger("meteole")
+
 # Fetch weather data
 df_arome = arome_client.get_coverage(
     indicator="V_COMPONENT_OF_WIND_GUST__SPECIFIC_HEIGHT_LEVEL_ABOVE_GROUND",  # Optional: if not, you have to fill coverage_id
-    run="2025-01-10T00:00:00Z",                                                # Optional: forecast start time
+    run="2025-01-10T00.00.00Z",                                                # Optional: forecast start time
     interval=None,                                                             # Optional: time range for predictions
     forecast_horizons=[0, 1, 2],                                               # Optional: prediction times (in hours)
     heights=[10],                                                              # Optional: height above ground level
     pressures=None,                                                            # Optional: pressure level
+    long = (-5.1413, 9.5602),                                                  # Optional: longitude
+    lat = (41.33356, 51.0889),                                                 # Optional: latitude
     coverage_id=None                                                           # Optional: an alternative to indicator/run/interval
 )
 ```

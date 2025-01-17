@@ -285,7 +285,7 @@ class WeatherForecast(ABC):
             raise ValueError(f"Unknown `indicator` - checkout `{self.MODEL_NAME}.indicators` to have the full list.")
 
         if run is None:
-            run = capabilities.iloc[0]["run"]
+            run = capabilities.run.max()
             logger.info(f"Using latest `run={run}`.")
 
         try:
