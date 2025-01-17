@@ -57,17 +57,17 @@ Meteole allows you to retrieve forecasts for a wide range of weather indicators.
 ```python
 from meteole import AromeForecast
 
+# Configure the logger to provide information on data recovery: recovery status, default settings, etc.
+import logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger("meteole")
+
 # Initialize the AROME forecast client
 # Find your APPLICATION_ID by following these guidelines: https://maif.github.io/meteole/how_to/?h=application_id#get-a-token-an-api-key-or-an-application-id
 arome_client = AromeForecast(application_id=APPLICATION_ID)
 
 # Check indicators available
 print(arome_client.INDICATORS)
-
-#Configure the logger to provide information on data recovery: recovery status, default settings, etc.
-import logging
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger("meteole")
 
 # Fetch weather data
 df_arome = arome_client.get_coverage(
