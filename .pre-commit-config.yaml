@@ -39,10 +39,6 @@ repos:
         args: [--config-file=pyproject.toml]
         files: src
         additional_dependencies: [pydantic~=2.0,types-pytz,types-requests,types-python-dateutil]
-  # - repo: https://github.com/gitleaks/gitleaks
-  #   rev: v8.22.1
-  #   hooks:
-  #     - id: gitleaks
   - repo: https://github.com/pypa/pip-audit
     rev: v2.7.3
     hooks:
