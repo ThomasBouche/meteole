@@ -81,4 +81,6 @@ nav:
   - User Guide:
     - How to: how_to.md
   - Advanced User Guide:
-    - Coverages: coverage_parameters.md
+    - Forecast:
+      - Coverages: coverage_parameters.md
+      - Output: output.md
