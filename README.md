@@ -18,6 +18,8 @@
 
 **Repository:** [https://github.com/MAIF/meteole](https://github.com/MAIF/meteole)
 
+**Release article:** [Medium](https://medium.com/oss-by-maif/meteole-simplifier-lacc%C3%A8s-aux-donn%C3%A9es-m%C3%A9t%C3%A9o-afeec5e5d395)
+
 ---
 
 ## Overview
