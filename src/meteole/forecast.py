@@ -6,6 +6,7 @@ import re
 import tempfile
 from abc import ABC, abstractmethod
 from functools import reduce
+from importlib.util import find_spec
 from typing import Any
 
 import pandas as pd
@@ -14,6 +15,12 @@ import xmltodict
 
 from meteole.clients import BaseClient
 from meteole.errors import MissingDataError
+
+if find_spec("cfgrib") is None:
+    raise ImportError(
+        "The 'cfgrib' module is required to read Arome and Arpege GRIB files. Please install it using:\n\n"
+        "  conda install -c conda-forge cfgrib\n\n"
+    )
 
 logger = logging.getLogger(__name__)
 
