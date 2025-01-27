@@ -34,7 +34,7 @@ client = Vigilance(application_id=APPLICATION_ID)
 df_phenomenon, df_timelaps = client.get_phenomenon()
 
 # Fetch vigilance bulletins
-textes_vigilance = client.get_vigilance_bulletin()
+textes_vigilance = client.get_bulletin()
 
 # Display the vigilance vignette
 client.get_vignette()
