@@ -56,6 +56,8 @@ Meteole allows you to retrieve forecasts for a wide range of weather indicators.
 | Update Frequency | Every 3 hours        | Every 6 hours        |
 | Forecast Range   | Up to 51 hours       | Up to 114 hours      |
 
+*note : the date of the run cannot be more than 4 days in the past. In case, take care about the exeample following.*
+
 ```python
 from meteole import AromeForecast
 
@@ -76,7 +78,7 @@ df_arome = arome_client.get_coverage(
     indicator="V_COMPONENT_OF_WIND_GUST__SPECIFIC_HEIGHT_LEVEL_ABOVE_GROUND",  # Optional: if not, you have to fill coverage_id
     run="2025-01-10T00.00.00Z",                                                # Optional: forecast start time
     interval=None,                                                             # Optional: time range for predictions
-    forecast_horizons=[0, 1, 2],                                               # Optional: prediction times (in hours)
+    forecast_horizons=[1, 2],                                               # Optional: prediction times (in hours)
     heights=[10],                                                              # Optional: height above ground level
     pressures=None,                                                            # Optional: pressure level
     long = (-5.1413, 9.5602),                                                  # Optional: longitude

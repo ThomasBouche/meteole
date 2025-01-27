@@ -574,12 +574,12 @@ class WeatherForecast(ABC):
     def _get_available_feature(grid_axis: list[dict[str, Any]], feature_name: str) -> list[int]:
         """(Protected)
         Retrieve available features.
-
-        TODO: add more details here.
-
+        
         Args:
-            grid_axis: ?
-            feature_name: ?
+            grid_axis (list[dict[str, Any]]): A list of dictionaries where each dictionary represents a grid axis. Each dictionary contains 
+            information about the axis, such as the grid axes it spans and the associated coefficients.
+            
+            feature_name (str): Name of the feature you want to retrieve to filter the grid axes to find those that match the feature.
 
         Returns:
             List of available feature.
