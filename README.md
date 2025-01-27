@@ -56,7 +56,7 @@ Meteole allows you to retrieve forecasts for a wide range of weather indicators.
 | Update Frequency | Every 3 hours        | Every 6 hours        |
 | Forecast Range   | Up to 51 hours       | Up to 114 hours      |
 
-*note : the date of the run cannot be more than 4 days in the past. In case, take care about the exeample following.*
+*note : the date of the run cannot be more than 4 days in the past. Consequently, change the date of the run in the example below.*
 
 ```python
 from meteole import AromeForecast
