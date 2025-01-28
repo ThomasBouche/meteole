@@ -235,7 +235,13 @@ class TestAromeForecast(unittest.TestCase):
         )
 
         mock_get_data_single_forecast.assert_called_once_with(
-            coverage_id="toto", height=2, pressure=None, forecast_horizon=0, lat=(37.5, 55.4), long=(-12, 16)
+            coverage_id="toto",
+            height=2,
+            pressure=None,
+            forecast_horizon=0,
+            lat=(37.5, 55.4),
+            long=(-12, 16),
+            temp_dir=None,
         )
 
     @patch("meteole._arome.AromeForecast.get_coverage_description")

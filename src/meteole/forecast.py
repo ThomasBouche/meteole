@@ -2,7 +2,9 @@ from __future__ import annotations
 
 import datetime as dt
 import logging
+import os
 import re
+import shutil
 import tempfile
 from abc import ABC, abstractmethod
 from functools import reduce
@@ -147,6 +149,7 @@ class WeatherForecast(ABC):
         run: str | None = None,
         interval: str | None = None,
         coverage_id: str = "",
+        temp_dir: str | None = None,
     ) -> pd.DataFrame:
         """Return the coverage data (i.e., the weather forecast data).
 
@@ -163,6 +166,7 @@ class WeatherForecast(ABC):
                     raises an error if specified. Defaults to "P1D" for time-aggregated indicators such
                     as TOTAL_PRECIPITATION.
             coverage_id: An id of a coverage, use get_capabilities() to get them.
+            temp_dir (str | None): Directory to store the temporary file. Defaults to None.
 
         Returns:
             pd.DataFrame: The complete run for the specified execution.
@@ -192,6 +196,7 @@ class WeatherForecast(ABC):
                 forecast_horizon=forecast_horizon,
                 lat=lat,
                 long=long,
+                temp_dir=temp_dir,
             )
             for forecast_horizon in forecast_horizons
             for pressure in pressures
@@ -403,7 +408,11 @@ class WeatherForecast(ABC):
         response = self._client.get(url, params=params)
         return xmltodict.parse(response.text)
 
-    def _grib_bytes_to_df(self, grib_str: bytes) -> pd.DataFrame:
+    def _grib_bytes_to_df(
+        self,
+        grib_str: bytes,
+        temp_dir: str | None = None,
+    ) -> pd.DataFrame:
         """(Protected)
         Converts GRIB data (in binary format) into a pandas DataFrame.
 
@@ -413,6 +422,7 @@ class WeatherForecast(ABC):
 
         Args:
             grib_str (bytes): Binary GRIB data as a byte string.
+            temp_dir (str | None): Directory to store the temporary file. Defaults to None.
 
         Returns:
             pd.DataFrame: A pandas DataFrame containing the extracted GRIB data,
@@ -427,8 +437,18 @@ class WeatherForecast(ABC):
             - The temporary file used for parsing is automatically deleted after use.
             - Ensure the input GRIB data is valid and encoded in a binary format.
         """
+        created_temp_dir = False
 
-        with tempfile.NamedTemporaryFile() as temp_file:
+        if temp_dir:
+            if not os.path.exists(temp_dir):
+                os.makedirs(temp_dir)
+                created_temp_dir = True
+            temp_subdir = os.path.join(temp_dir, "temp_grib")
+            os.makedirs(temp_subdir, exist_ok=True)
+        else:
+            temp_subdir = tempfile.mkdtemp()
+
+        with tempfile.NamedTemporaryFile(dir=temp_subdir, delete=False) as temp_file:
             # Write the GRIB binary data to the temporary file
             temp_file.write(grib_str)
             temp_file.flush()  # Ensure the data is written to disk
@@ -438,6 +458,11 @@ class WeatherForecast(ABC):
 
             # Convert the Dataset to a pandas DataFrame
             df = ds.to_dataframe().reset_index()
+
+        if created_temp_dir and temp_dir is not None:
+            shutil.rmtree(temp_dir)
+        else:
+            shutil.rmtree(temp_subdir)
 
         return df
 
@@ -449,6 +474,7 @@ class WeatherForecast(ABC):
         height: int | None,
         lat: tuple,
         long: tuple,
+        temp_dir: str | None = None,
     ) -> pd.DataFrame:
         """(Protected)
         Return the forecast's data for a given time and indicator.
@@ -460,6 +486,7 @@ class WeatherForecast(ABC):
             forecast_horizon (int): the forecast horizon in hours (how many hours ahead)
             lat (tuple): minimum and maximum latitude
             long (tuple): minimum and maximum longitude
+            temp_dir (str | None): Directory to store the temporary file. Defaults to None.
 
         Returns:
             pd.DataFrame: The forecast for the specified time.
@@ -474,7 +501,7 @@ class WeatherForecast(ABC):
             long=long,
         )
 
-        df: pd.DataFrame = self._grib_bytes_to_df(grib_binary)
+        df: pd.DataFrame = self._grib_bytes_to_df(grib_binary, temp_dir=temp_dir)
 
         # Drop and rename columns
         df.drop(columns=["surface", "valid_time"], errors="ignore", inplace=True)
@@ -521,10 +548,7 @@ class WeatherForecast(ABC):
         long: tuple = (-12, 16),
     ) -> bytes:
         """(Protected)
-        Retrieves raster data for a specified model prediction and saves it to a file.
-
-        If no `filepath` is provided, the file is saved to a default cache directory under
-        the current working directory.
+        Retrieves data for a specified model prediction.
 
         Args:
             coverage_id (str): The coverage ID to retrieve. Use `get_coverage` to list available coverage IDs.
@@ -537,10 +561,6 @@ class WeatherForecast(ABC):
                 Defaults to (37.5, 55.4), covering the latitudes of France.
             long (tuple[float, float], optional): Tuple specifying the minimum and maximum longitudes.
                 Defaults to (-12, 16), covering the longitudes of France.
-            file_format (str, optional): The format of the raster file. Supported formats are "grib" and "tiff".
-                Defaults to "grib".
-            filepath (Path, optional): The file path where the raster file will be saved. If not specified,
-                the file is saved to a cache directory.
 
         Returns:
             Path: The file path to the saved raster data.
@@ -605,6 +625,7 @@ class WeatherForecast(ABC):
         lat: tuple = FRANCE_METRO_LATITUDES,
         long: tuple = FRANCE_METRO_LONGITUDES,
         forecast_horizons: list[int] | None = None,
+        temp_dir: str | None = None,
     ) -> pd.DataFrame:
         """
         Get a combined DataFrame of coverage data for multiple indicators and different runs.
@@ -624,6 +645,7 @@ class WeatherForecast(ABC):
             lat (tuple): The latitude range as (min_latitude, max_latitude). Defaults to FRANCE_METRO_LATITUDES.
             long (tuple): The longitude range as (min_longitude, max_longitude). Defaults to FRANCE_METRO_LONGITUDES.
             forecast_horizons (list[int] | None): A list of forecast horizon values in hours. Defaults to None.
+            temp_dir (str | None): Directory to store the temporary file. Defaults to None.
 
         Returns:
             pd.DataFrame: A combined DataFrame containing coverage data for all specified runs and indicators.
@@ -643,6 +665,7 @@ class WeatherForecast(ABC):
                 pressures=pressures,
                 intervals=intervals,
                 forecast_horizons=forecast_horizons,
+                temp_dir=temp_dir,
             )
             for run in runs
         ]
@@ -658,6 +681,7 @@ class WeatherForecast(ABC):
         lat: tuple = FRANCE_METRO_LATITUDES,
         long: tuple = FRANCE_METRO_LONGITUDES,
         forecast_horizons: list[int] | None = None,
+        temp_dir: str | None = None,
     ) -> pd.DataFrame:
         """(Protected)
         Get a combined DataFrame of coverage data for a given run considering a list of indicators.
@@ -677,6 +701,7 @@ class WeatherForecast(ABC):
             lat (tuple): The latitude range as (min_latitude, max_latitude). Defaults to FRANCE_METRO_LATITUDES.
             long (tuple): The longitude range as (min_longitude, max_longitude). Defaults to FRANCE_METRO_LONGITUDES.
             forecast_horizons (list[int] | None): A list of forecast horizon values in hours. Defaults to None.
+            temp_dir (str | None): Directory to store the temporary file. Defaults to None.
 
         Returns:
             pd.DataFrame: A combined DataFrame containing coverage data for all specified runs and indicators.
@@ -737,6 +762,7 @@ class WeatherForecast(ABC):
                 heights=[height] if height is not None else [],
                 pressures=[pressure] if pressure is not None else [],
                 forecast_horizons=forecast_horizons,
+                temp_dir=temp_dir,
             )
             for coverage_id, height, pressure in zip(coverage_ids, heights, pressures)
         ]

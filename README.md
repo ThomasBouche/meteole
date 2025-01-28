@@ -83,7 +83,8 @@ df_arome = arome_client.get_coverage(
     pressures=None,                                                            # Optional: pressure level
     long = (-5.1413, 9.5602),                                                  # Optional: longitude
     lat = (41.33356, 51.0889),                                                 # Optional: latitude
-    coverage_id=None                                                           # Optional: an alternative to indicator/run/interval
+    coverage_id=None,                                                          # Optional: an alternative to indicator/run/interval
+    temp_dir=None,                                                             # Optional: Directory to store the temporary file
 )
 ```
 Note: The coverage_id can be used instead of indicator, run, and interval.
