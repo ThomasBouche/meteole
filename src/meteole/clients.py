@@ -61,7 +61,8 @@ class MeteoFranceClient(BaseClient):
     """
 
     # Class constants
-    API_BASE_URL: str = "https://public-api.meteofrance.fr/public/"
+    # API_BASE_URL: str = "https://public-api.meteofrance.fr/public/"
+    API_BASE_URL: str = "https://api.meteofrance.fr/pro/"
     TOKEN_URL: str = "https://portail-api.meteofrance.fr/token"  # noqa: S105
     GET_TOKEN_TIMEOUT_SEC: int = 10
     INVALID_JWT_ERROR_CODE: str = "900901"

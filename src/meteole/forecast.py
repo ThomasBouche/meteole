@@ -305,7 +305,7 @@ class WeatherForecast(ABC):
                 )
         else:
             if not interval:
-                interval = "P1D"
+                interval = valid_intervals[0]
                 logger.info(
                     f"`interval=None` is invalid  for non-instant indicators. Using default `interval={interval}`"
                 )
