@@ -45,7 +45,10 @@ class PiafForecast(WeatherForecast):
     BASE_ENTRY_POINT: str = "wcs/MF-NWP-HIGHRES-PIAF"
     DEFAULT_TERRITORY: str = "FRANCE"
     DEFAULT_PRECISION: float = 0.01
-    CLIENT_CLASS: type[BaseClient] = MeteoFranceClient
+
+    client_class = MeteoFranceClient
+    client_class.API_BASE_URL = "https://api.meteofrance.fr/pro/"
+    CLIENT_CLASS: type[BaseClient] = client_class
 
     def _validate_parameters(self) -> None:
         """Check the territory and the precision parameters.
