@@ -1,6 +1,6 @@
 Weather forecasts from Météo-France APIs are based on key parameters that vary from indicator to indicator, which makes them complex to use.
 
-Understanding coverages is a must to have a comprehensive usage of Météo-France forecasting models like AROME, AROME INSTANTANÉ or ARPEGE.
+Understanding coverages is a must to have a comprehensive usage of Météo-France forecasting models like AROME, AROME INSTANTANE, ARPEGE or PIAF.
 
 ## Coverage_id
 
