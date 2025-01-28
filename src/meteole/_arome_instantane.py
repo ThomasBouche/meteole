@@ -10,11 +10,6 @@ logger = logging.getLogger(__name__)
 
 AVAILABLE_AROME_TERRITORY: list[str] = [
     "FRANCE",
-    "NCALED",
-    "INDIEN",
-    "POLYN",
-    "GUYANE",
-    "ANTIL",
 ]
 
 AROME_INSTANT_INDICATORS: list[str] = [

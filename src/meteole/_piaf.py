@@ -10,11 +10,6 @@ logger = logging.getLogger(__name__)
 
 AVAILABLE_PIAF_TERRITORY: list[str] = [
     "FRANCE",
-    "NCALED",
-    "INDIEN",
-    "POLYN",
-    "GUYANE",
-    "ANTIL",
 ]
 
 PIAF_INSTANT_INDICATORS: list[str] = []
