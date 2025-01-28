@@ -8,4 +8,4 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ### Features
 
-* Add an optionnal temporary directory: `temp_dir` (#28).
+* Add an optional temporary directory: `temp_dir` (#28).
