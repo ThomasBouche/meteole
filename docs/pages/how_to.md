@@ -44,15 +44,15 @@ client.get_vignette()
 
 > More details about Vigilance Bulletin in [the official Meteo France Documentation](https://donneespubliques.meteofrance.fr/?fond=produit&id_produit=305&id_rubrique=50)
 
-## Get AROME or ARPEGE data
+## Get data
 
-Meteole allows you to retrieve forecasts for a wide range of weather indicators. Here's how to get started with AROME and ARPEGE:
+Meteole allows you to retrieve forecasts for a wide range of weather indicators. Here's how to get started with AROME, AROME INSTANTANE, ARPEGE or PIAF:
 
-| Characteristics  | AROME                | ARPEGE               |
-|------------------|----------------------|----------------------|
-| Resolution       | 1.3 km               | 10 km                |
-| Update Frequency | Every 3 hours        | Every 6 hours        |
-| Forecast Range   | Up to 51 hours       | Up to 114 hours      |
+| Characteristics  | AROME                      | ARPEGE                      | AROME INSTANTANE               | PIAF               |
+|------------------|----------------------------|-----------------------------|--------------------------------| -------------------------------|
+| Resolution       | 1.3 km                     | 10 km                       | 1.3 km                         | 1.3 km                         |
+| Update Frequency | Every 3 hours              | Every 6 hours               | Every 1 hour                   | Every 10 minutes |
+| Forecast Range   | Every hour, up to 51 hours | Every hour, up to 114 hours | Every 15 minutes, up to 360 minutes | Every 5 minutes, up to 195 minutes |
 
 *note : the date of the run cannot be more than 4 days in the past. Consequently, change the date of the run in the example below.*
 
