@@ -76,8 +76,8 @@ df_arome = arome_client.get_coverage(
     run="2025-01-10T00.00.00Z",                                                # Optional: forecast start time
     interval=None,                                                             # Optional: time range for predictions
     forecast_horizons=[
-        dt.timedelta(1),
-        dt.timedelta(2),
+        dt.timedelta(hours=1),
+        dt.timedelta(hours=2),
     ],                                               # Optional: prediction times (in hours)
     heights=[10],                                                              # Optional: height above ground level
     pressures=None,                                                            # Optional: pressure level
