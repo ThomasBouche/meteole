@@ -61,7 +61,6 @@ class MeteoFranceClient(BaseClient):
     """
 
     # Class constants
-    API_BASE_URL: str = "https://public-api.meteofrance.fr/public/"
     TOKEN_URL: str = "https://portail-api.meteofrance.fr/token"  # noqa: S105
     GET_TOKEN_TIMEOUT_SEC: int = 10
     INVALID_JWT_ERROR_CODE: str = "900901"
@@ -71,6 +70,7 @@ class MeteoFranceClient(BaseClient):
         self,
         *,
         token: str | None = None,
+        api_base_url: str = "https://public-api.meteofrance.fr/public/",  # need it as an argument since PIAF model has a different base URL
         api_key: str | None = None,
         application_id: str | None = None,
         certs_path: Path | None = None,
@@ -84,6 +84,7 @@ class MeteoFranceClient(BaseClient):
             application_id: The application ID used for identification.
             certs_path: The path to a file or directory of trusted CA certificates for SSL verification.
         """
+        self._api_base_url = api_base_url
         self._token = token
         self._api_key = api_key
         self._application_id = application_id
@@ -108,7 +109,7 @@ class MeteoFranceClient(BaseClient):
         Returns:
             The response returned by the API.
         """
-        url: str = self.API_BASE_URL + path
+        url: str = self._api_base_url + path
         attempt: int = 0
         logger.debug(f"GET {url}")
 

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from typing import final
+from typing import Any, final
 
 from meteole.clients import BaseClient, MeteoFranceClient
 from meteole.forecast import WeatherForecast
@@ -40,10 +40,20 @@ class PiafForecast(WeatherForecast):
     BASE_ENTRY_POINT: str = "wcs/MF-NWP-HIGHRES-PIAF"
     DEFAULT_TERRITORY: str = "FRANCE"
     DEFAULT_PRECISION: float = 0.01
+    CLIENT_CLASS: type[BaseClient] = MeteoFranceClient
 
-    client_class = MeteoFranceClient
-    client_class.API_BASE_URL = "https://api.meteofrance.fr/pro/"
-    CLIENT_CLASS: type[BaseClient] = client_class
+    def __init__(
+        self,
+        **kwargs: Any,
+    ):
+        """Initialize attributes.
+
+        Args:
+            api_key: The API key for authentication. Defaults to None.
+            token: The API token for authentication. Defaults to None.
+            application_id: The Application ID for authentication. Defaults to None.
+        """
+        super().__init__(api_base_url="https://api.meteofrance.fr/pro/", **kwargs)
 
     def _validate_parameters(self) -> None:
         """Check the territory and the precision parameters.
