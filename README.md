@@ -27,7 +27,7 @@
 **Meteole** is a Python library designed to simplify accessing weather data from the Météo-France APIs. It provides:
 
 - **Automated token management**: Simplify authentication with a single `application_id`.
-- **Unified model usage**: AROME and ARPEGE forecasts with a consistent interface.
+- **Unified model usage**: AROME, AROME INSTANTANE, ARPEGE, PIAF forecasts with a consistent interface.
 - **User-friendly parameter handling**: Intuitive management of key weather forecasting parameters.
 - **Seamless data integration**: Directly export forecasts as Pandas DataFrames
 - **Vigilance bulletins**: Retrieve real-time weather warnings across France.
@@ -46,9 +46,9 @@ pip install meteole
 
 Create an account on [the Météo-France API portal](https://portail-api.meteofrance.fr/). Next, subscribe to the desired APIs (Arome, Arpege, Arome Instantané, etc.). Retrieve the API token (or key) by going to “Mes APIs” and then “Générer token”.
 
-### Step 2: Fetch Forecasts from AROME and ARPEGE
+### Step 2: Fetch Forecasts
 
-Meteole allows you to retrieve forecasts for a wide range of weather indicators. Here's how to get started with AROME and ARPEGE:
+Meteole allows you to retrieve forecasts for a wide range of weather indicators. Here's how to get started:
 
 | Characteristics  | AROME                | ARPEGE                      | AROME INSTANTANE               | PIAF               |
 |------------------|----------------------|-----------------------------| -------------------------------| -------------------------------|
@@ -91,7 +91,7 @@ df_arome = arome_client.get_coverage(
 ```
 Note: The coverage_id can be used instead of indicator, run, and interval.
 
-The usage of ARPEGE is identical to AROME, except that you initialize the `ArpegeForecast` class
+The usage of ARPEGE, AROME INSTANTANE, PIAF is identical to AROME, except that you initialize the appropriate class
 
 ### Step 3: Explore Parameters and Indicators
 #### Discover Available Indicators
