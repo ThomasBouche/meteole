@@ -27,7 +27,7 @@
 **Meteole** is a Python library designed to simplify accessing weather data from the Météo-France APIs. It provides:
 
 - **Automated token management**: Simplify authentication with a single `application_id`.
-- **Unified model usage**: AROME and ARPEGE forecasts with a consistent interface.
+- **Unified model usage**: AROME, AROME INSTANTANE, ARPEGE, PIAF forecasts with a consistent interface.
 - **User-friendly parameter handling**: Intuitive management of key weather forecasting parameters.
 - **Seamless data integration**: Directly export forecasts as Pandas DataFrames
 - **Vigilance bulletins**: Retrieve real-time weather warnings across France.
@@ -44,17 +44,17 @@ pip install meteole
 
 ### Step 1: Obtain an API token or key
 
-Create an account on [the Météo-France API portal](https://portail-api.meteofrance.fr/). Next, subscribe to the desired APIs (Arome, Arpege, etc.). Retrieve the API token (or key) by going to “Mes APIs” and then “Générer token”.
+Create an account on [the Météo-France API portal](https://portail-api.meteofrance.fr/). Next, subscribe to the desired APIs (Arome, Arpege, Arome Instantané, etc.). Retrieve the API token (or key) by going to “Mes APIs” and then “Générer token”.
 
-### Step 2: Fetch Forecasts from AROME and ARPEGE
+### Step 2: Fetch Forecasts
 
-Meteole allows you to retrieve forecasts for a wide range of weather indicators. Here's how to get started with AROME and ARPEGE:
+Meteole allows you to retrieve forecasts for a wide range of weather indicators. Here's how to get started:
 
-| Characteristics  | AROME                | ARPEGE               |
-|------------------|----------------------|----------------------|
-| Resolution       | 1.3 km               | 10 km                |
-| Update Frequency | Every 3 hours        | Every 6 hours        |
-| Forecast Range   | Up to 51 hours       | Up to 114 hours      |
+| Characteristics  | AROME                | ARPEGE                      | AROME INSTANTANE               | PIAF               |
+|------------------|----------------------|-----------------------------| -------------------------------| -------------------------------|
+| Resolution       | 1.3 km               | 10 km                       | 1.3 km                         | 1.3 km                         |
+| Update Frequency | Every 3 hours        | Every 6 hours               | Every 1 hour                   | Every 10 minutes |
+| Forecast Range   | Every hour, up to 51 hours | Every hour, up to 114 hours | Every 15 minutes, up to 360 minutes | Every 5 minutes, up to 195 minutes |
 
 *note : the date of the run cannot be more than 4 days in the past. Consequently, change the date of the run in the example below.*
 
@@ -77,8 +77,10 @@ print(arome_client.INDICATORS)
 df_arome = arome_client.get_coverage(
     indicator="V_COMPONENT_OF_WIND_GUST__SPECIFIC_HEIGHT_LEVEL_ABOVE_GROUND",  # Optional: if not, you have to fill coverage_id
     run="2025-01-10T00.00.00Z",                                                # Optional: forecast start time
-    interval=None,                                                             # Optional: time range for predictions
-    forecast_horizons=[1, 2],                                                  # Optional: prediction times (in hours)
+    forecast_horizons=[                                                       # Optional: prediction times (in hours)
+      dt.timedelta(hours=1),
+      dt.timedelta(hours=2),
+    ],  
     heights=[10],                                                              # Optional: height above ground level
     pressures=None,                                                            # Optional: pressure level
     long = (-5.1413, 9.5602),                                                  # Optional: longitude
@@ -89,7 +91,7 @@ df_arome = arome_client.get_coverage(
 ```
 Note: The coverage_id can be used instead of indicator, run, and interval.
 
-The usage of ARPEGE is identical to AROME, except that you initialize the `ArpegeForecast` class
+The usage of ARPEGE, AROME INSTANTANE, PIAF is identical to AROME, except that you initialize the appropriate class
 
 ### Step 3: Explore Parameters and Indicators
 #### Discover Available Indicators
