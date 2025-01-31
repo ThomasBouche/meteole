@@ -51,7 +51,7 @@ def test_get_request_success(mock_get_token, mock_get):
     mock_response.json.return_value = {"data": "some data"}
     mock_get.return_value = mock_response
 
-    response = api.get("https://dummyurl.com")
+    response = api.get("DUMMY_PATH")
     assert response.status_code == 200
     assert response.json() == {"data": "some data"}
 
@@ -60,6 +60,7 @@ def test_get_request_success(mock_get_token, mock_get):
 @patch.object(MeteoFranceClient, "_get_token")
 def test_get_request_token_expired(mock_get_token, mock_get):
     api = MeteoFranceClient(api_key="dummy_api_key")
+    api.RETRY_DELAY_SEC = 0
 
     expired_response = MagicMock()
     expired_response.status_code = 401
@@ -72,11 +73,11 @@ def test_get_request_token_expired(mock_get_token, mock_get):
 
     mock_get.side_effect = [expired_response, valid_response, valid_response]
 
-    response = api.get("https://dummyurl.com")
+    response = api.get("DUMMY_PATH")
     assert response.status_code == 200
     assert response.json() == {"data": "some data"}
 
-    response = api.get("https://dummyurl.com")
+    response = api.get("DUMMY_PATH")
     assert response.status_code == 200
     assert response.json() == {"data": "some data"}
 
@@ -105,6 +106,7 @@ def test_token_not_expired():
 @patch.object(MeteoFranceClient, "_get_token")
 def test_get_request_specific_error(mock_get_token, mock_get):
     api = MeteoFranceClient(api_key="dummy_api_key")
+    api.RETRY_DELAY_SEC = 0
 
     error_response = MagicMock()
     error_response.status_code = 502
@@ -116,7 +118,7 @@ def test_get_request_specific_error(mock_get_token, mock_get):
 
     mock_get.side_effect = [error_response, valid_response]
 
-    response = api.get("https://dummyurl.com")
+    response = api.get("DUMMY_PATH")
     assert response.status_code == 200
     assert response.json() == {"data": "some data"}
     assert mock_get.call_count == 2
