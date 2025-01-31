@@ -14,7 +14,7 @@
 
 ---
 
-**Documentation:** [https://maif.github.io/meteole/home/](https://maif.github.io/meteole/home/)
+**Documentation:** [https://maif.github.io/meteole/home/](https://maif.github.io/meteole/home/).
 
 **Repository:** [https://github.com/MAIF/meteole](https://github.com/MAIF/meteole)
 
