@@ -8,4 +8,5 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ### Features
 
-* Add an optional temporary directory: `temp_dir` (#28).
+* Support for Météo-France models `AROME PI` and `PIAF` (#27)
+* Add an optional temporary directory: `temp_dir` (#28)
