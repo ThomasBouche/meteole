@@ -59,6 +59,7 @@ Meteole allows you to retrieve forecasts for a wide range of weather indicators.
 *note : the date of the run cannot be more than 4 days in the past. Consequently, change the date of the run in the example below.*
 
 ```python
+import datetime as dt 
 from meteole import AromeForecast
 
 # Configure the logger to provide information on data recovery: recovery status, default settings, etc.
