@@ -61,6 +61,8 @@ class AromeForecast(WeatherForecast):
     INDICATORS: list[str] = AROME_INSTANT_INDICATORS + AROME_OTHER_INDICATORS
     INSTANT_INDICATORS: list[str] = AROME_INSTANT_INDICATORS
     BASE_ENTRY_POINT: str = "wcs/MF-NWP-HIGHRES-AROME"
+    MODEL_TYPE: str = "DETER"
+    ENSEMBLE_NUMBERS = 1
     DEFAULT_TERRITORY: str = "FRANCE"
     DEFAULT_PRECISION: float = 0.01
     CLIENT_CLASS: type[BaseClient] = MeteoFranceClient
