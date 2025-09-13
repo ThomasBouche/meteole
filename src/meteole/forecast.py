@@ -50,6 +50,8 @@ class WeatherForecast(ABC):
     # Model
     MODEL_NAME: str = "Defined in subclass"
     BASE_ENTRY_POINT: str = "Defined in subclass"
+    MODEL_TYPE: str = "Defined in subclass"
+    ENSEMBLE_NUMBERS: int = 1
     INDICATORS: list[str] = []
     INSTANT_INDICATORS: list[str] = []
     DEFAULT_TERRITORY: str = "FRANCE"
@@ -72,14 +74,21 @@ class WeatherForecast(ABC):
             token: The API token for authentication. Defaults to None.
             application_id: The Application ID for authentication. Defaults to None.
         """
+        
         self.territory = territory  # "FRANCE", "ANTIL", or others (see API doc)
         self.precision = precision
         self._validate_parameters()
 
         self._capabilities: pd.DataFrame | None = None
-        self._entry_point: str = (
-            f"{self.BASE_ENTRY_POINT}-{self.PRECISION_FLOAT_TO_STR[self.precision]}-{self.territory}-WCS"
-        )
+        
+        if self.MODEL_TYPE == "ENSEMBLE":  
+            self._entry_point: str = (
+                f"{self.BASE_ENTRY_POINT}xxx-{self.PRECISION_FLOAT_TO_STR[self.precision]}-{self.territory}-WCS"
+            )
+        else:
+            self._entry_point: str = (
+                f"{self.BASE_ENTRY_POINT}-{self.PRECISION_FLOAT_TO_STR[self.precision]}-{self.territory}-WCS"
+            )
         self._model_base_path = self.MODEL_NAME + "/" + self.API_VERSION
 
         if client is not None:
@@ -116,7 +125,7 @@ class WeatherForecast(ABC):
         """
         return self.capabilities
 
-    def get_coverage_description(self, coverage_id: str) -> dict[str, Any]:
+    def get_coverage_description(self, coverage_id: str, numbers: list[int] | None = [0]) -> dict[str, Any]:
         """Return the available axis (times, heights) of a coverage.
 
         TODO: Other informations can be fetched, not yet implemented.
@@ -127,25 +136,43 @@ class WeatherForecast(ABC):
         Returns:
             A dictionary containing more info on the coverage.
         """
-        description = self._get_coverage_description(coverage_id)
-        grid_axis = description["wcs:CoverageDescriptions"]["wcs:CoverageDescription"]["gml:domainSet"][
-            "gmlrgrid:ReferenceableGridByVectors"
-        ]["gmlrgrid:generalGridAxis"]
-
-        return {
-            "forecast_horizons": [
-                dt.timedelta(seconds=time) for time in self._get_available_feature(grid_axis, "time")
-            ],
-            "heights": self._get_available_feature(grid_axis, "height"),
-            "pressures": self._get_available_feature(grid_axis, "pressure"),
-        }
+        
+        if self.MODEL_TYPE == "ENSEMBLE":
+            if numbers is None:
+                numbers_to_fetch = range(self.ENSEMBLE_NUMBERS)
+            else: 
+                numbers_to_fetch = numbers
+            coverage_description = {}
+        else:
+            numbers_to_fetch = [None]
+            
+        for number in numbers_to_fetch:
+            description = self._get_coverage_description(coverage_id, number)
+            grid_axis = description["wcs:CoverageDescriptions"]["wcs:CoverageDescription"]["gml:domainSet"][
+                "gmlrgrid:ReferenceableGridByVectors"
+            ]["gmlrgrid:generalGridAxis"]
+            
+            coverage_description_single = {
+                "forecast_horizons": [
+                    dt.timedelta(seconds=time) for time in self._get_available_feature(grid_axis, "time")
+                ],
+                "heights": self._get_available_feature(grid_axis, "height"),
+                "pressures": self._get_available_feature(grid_axis, "pressure"),
+            }
+            if number is None or len(numbers_to_fetch) == 1:
+                coverage_description = coverage_description_single
+            else:
+                coverage_description[f"number_{number}"] = coverage_description_single
+        
+        return coverage_description
 
     def get_coverage(
         self,
         indicator: str | None = None,
         lat: tuple = FRANCE_METRO_LATITUDES,
         long: tuple = FRANCE_METRO_LONGITUDES,
-        heights: list[int] | None = None,
+        numbers: list[int] | None = None,
+        heights: list[int] | None = None ,
         pressures: list[int] | None = None,
         forecast_horizons: list[dt.timedelta] | None = None,
         run: str | None = None,
@@ -173,13 +200,16 @@ class WeatherForecast(ABC):
         Returns:
             pd.DataFrame: The complete run for the specified execution.
         """
+        # Numbers cannot be None if the model type is ENSEMBLE
+        if self.MODEL_TYPE == "ENSEMBLE" and numbers is None:
+            numbers = [0]
+            
         # Ensure we only have one of coverage_id, indicator
         if not bool(indicator) ^ bool(coverage_id):
             raise ValueError("Argument `indicator` or `coverage_id` need to be set (only one of them)")
-
         if indicator is not None:
             coverage_id = self._get_coverage_id(indicator, run, interval)
-
+        
         logger.info(f"Using `coverage_id={coverage_id}`")
 
         axis = self.get_coverage_description(coverage_id)
@@ -189,10 +219,11 @@ class WeatherForecast(ABC):
         forecast_horizons = self._raise_if_invalid_or_fetch_default(
             "forecast_horizons", forecast_horizons, axis["forecast_horizons"]
         )
-
+       
         df_list = [
             self._get_data_single_forecast(
                 coverage_id=coverage_id,
+                number=number,
                 height=height if height != -1 else None,
                 pressure=pressure if pressure != -1 else None,
                 forecast_horizon=forecast_horizon,
@@ -203,6 +234,7 @@ class WeatherForecast(ABC):
             for forecast_horizon in forecast_horizons
             for pressure in pressures
             for height in heights
+            for number in ([None] if (numbers is None) else numbers)
         ]
 
         return pd.concat(df_list, axis=0).reset_index(drop=True)
@@ -216,7 +248,8 @@ class WeatherForecast(ABC):
         """
 
         logger.info("Fetching all available coverages...")
-
+        
+    
         capabilities = self._fetch_capabilities()
         df_capabilities = pd.DataFrame(capabilities["wcs:Capabilities"]["wcs:Contents"]["wcs:CoverageSummary"])
         df_capabilities = df_capabilities.rename(
@@ -233,20 +266,23 @@ class WeatherForecast(ABC):
         df_capabilities["interval"] = [
             coverage_id.split("___")[1].split("Z")[1].strip("_") for coverage_id in df_capabilities["id"]
         ]
-
+            
         nb_indicators = len(df_capabilities["indicator"].unique())
         nb_coverage_ids = df_capabilities.shape[0]
         runs = df_capabilities["run"].unique()
-
+        
+    
+        
         logger.info(
             f"\n"
             f"\t Successfully fetched {nb_coverage_ids} coverages,\n"
             f"\t representing {nb_indicators} different indicators,\n"
-            f"\t across the last {len(runs)} runs (from {runs.min()} to {runs.max()}).\n"
+            f"\t across the last {len(runs)} runs (from {runs.min()} to {runs.max()})\n"
             f"\n"
             f"\t Default run for `get_coverage`: {runs.max()})"
         )
-
+  
+        
         return df_capabilities
 
     def _get_coverage_id(
@@ -358,8 +394,12 @@ class WeatherForecast(ABC):
         Returns:
             Raw capabilities (dictionary).
         """
-
-        url = f"{self._model_base_path}/{self._entry_point}/GetCapabilities"
+        
+        if self.MODEL_TYPE == "ENSEMBLE":        
+            url = f"{self._model_base_path}/{self._entry_point.replace('xxx', '001')}/GetCapabilities"
+        else:
+            url = f"{self._model_base_path}/{self._entry_point}/GetCapabilities"
+            
         params = {
             "service": "WCS",
             "version": "2.0.1",
@@ -382,7 +422,7 @@ class WeatherForecast(ABC):
             logger.error(f"Response: {xml}")
             raise e
 
-    def _get_coverage_description(self, coverage_id: str) -> dict[Any, Any]:
+    def _get_coverage_description(self, coverage_id: str, number: int | None) -> dict[Any, Any]:
         """(Protected)
         Get the description of a coverage.
 
@@ -399,7 +439,10 @@ class WeatherForecast(ABC):
         Returns:
             description (dict): the description of the coverage.
         """
-        url = f"{self._model_base_path}/{self._entry_point}/DescribeCoverage"
+        if self.MODEL_TYPE == "ENSEMBLE":
+            url = f"{self._model_base_path}/{self._entry_point.replace('xxx', '{:03}'.format(number))}/DescribeCoverage"
+        else:
+            url = f"{self._model_base_path}/{self._entry_point}/DescribeCoverage" 
         params = {
             "service": "WCS",
             "version": "2.0.1",
@@ -470,6 +513,7 @@ class WeatherForecast(ABC):
         self,
         coverage_id: str,
         forecast_horizon: dt.timedelta,
+        number: int | None,
         pressure: int | None,
         height: int | None,
         lat: tuple,
@@ -494,6 +538,7 @@ class WeatherForecast(ABC):
 
         grib_binary: bytes = self._get_coverage_file(
             coverage_id=coverage_id,
+            number=number,
             height=height,
             pressure=pressure,
             forecast_horizon_in_seconds=int(forecast_horizon.total_seconds()),
@@ -512,7 +557,11 @@ class WeatherForecast(ABC):
             },
             inplace=True,
         )
-        known_columns = {"latitude", "longitude", "run", "forecast_horizon", "heightAboveGround", "isobaricInhPa"}
+        if number is None:
+            known_columns = {"latitude", "longitude", "run", "forecast_horizon", "heightAboveGround", "isobaricInhPa"}
+        else:    
+            known_columns = {"latitude", "longitude", "number", "run", "forecast_horizon", "heightAboveGround", "isobaricInhPa"}
+ 
         indicator_column = (set(df.columns) - known_columns).pop()
 
         if indicator_column == "unknown":
@@ -541,6 +590,7 @@ class WeatherForecast(ABC):
     def _get_coverage_file(
         self,
         coverage_id: str,
+        number: int | None,
         height: int | None = None,
         pressure: int | None = None,
         forecast_horizon_in_seconds: int = 0,
@@ -572,7 +622,11 @@ class WeatherForecast(ABC):
         See Also:
             raster.plot_tiff_file: Method for plotting raster data stored in TIFF format.
         """
-        url = f"{self._model_base_path}/{self._entry_point}/GetCoverage"
+        if number is None:
+            url = f"{self._model_base_path}/{self._entry_point}/GetCoverage"  
+        else:
+            url = f"{self._model_base_path}/{self._entry_point.replace('xxx', '{:03}'.format(number))}/GetCoverage"  
+
         params = {
             "service": "WCS",
             "version": "2.0.1",
@@ -619,6 +673,7 @@ class WeatherForecast(ABC):
         self,
         indicator_names: list[str],
         runs: list[str | None] | None = None,
+        numbers: list[int] | None = None,
         heights: list[int] | None = None,
         pressures: list[int] | None = None,
         intervals: list[str | None] | None = None,
@@ -653,6 +708,10 @@ class WeatherForecast(ABC):
         Raises:
             ValueError: If the length of `heights` does not match the length of `indicator_names`.
         """
+        # Numbers cannot be None if the model type is ENSEMBLE
+        if self.MODEL_TYPE == "ENSEMBLE" and numbers is None:
+            numbers = [0]
+            
         if runs is None:
             runs = [None]
         coverages = [
@@ -661,6 +720,7 @@ class WeatherForecast(ABC):
                 run=run,
                 lat=lat,
                 long=long,
+                numbers=numbers,
                 heights=heights,
                 pressures=pressures,
                 intervals=intervals,
@@ -675,6 +735,7 @@ class WeatherForecast(ABC):
         self,
         indicator_names: list[str],
         run: str | None = None,
+        numbers: list[int] | None = None,
         heights: list[int] | None = None,
         pressures: list[int] | None = None,
         intervals: list[str | None] | None = None,
@@ -752,31 +813,38 @@ class WeatherForecast(ABC):
         else:
             forecast_horizons = [self.find_common_forecast_horizons(coverage_ids)[0]]
             logger.info(f"Using common forecast_horizons `forecast_horizons={forecast_horizons}`.")
-
-        coverages = [
+        
+        coverages = [[
             self.get_coverage(
                 coverage_id=coverage_id,
                 run=run,
                 lat=lat,
                 long=long,
+                numbers=[number] if number is not None else None,
                 heights=[height] if height is not None else [],
                 pressures=[pressure] if pressure is not None else [],
                 forecast_horizons=forecast_horizons,
                 temp_dir=temp_dir,
             )
             for coverage_id, height, pressure in zip(coverage_ids, heights, pressures)
+            ] for number in ([None] if (numbers is None) else numbers)
         ]
-
-        return reduce(
+        
+        coverages_concat = pd.concat([reduce(
             lambda left, right: pd.merge(
                 left,
                 right,
-                on=["latitude", "longitude", "run", "forecast_horizon"],
+                on=["latitude", "longitude", "number", "run", "forecast_horizon"] if self.MODEL_TYPE == "ENSEMBLE" else ["latitude", "longitude", "run", "forecast_horizon"],
                 how="inner",
                 validate="one_to_one",
             ),
-            coverages,
-        )
+            coverages[i],
+            ) 
+            for i in range(len(coverages))
+            ]
+            )
+        
+        return coverages_concat
 
     def _get_forecast_horizons(self, coverage_ids: list[str]) -> list[list[dt.timedelta]]:
         """(Protected)
