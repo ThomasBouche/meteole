@@ -125,23 +125,24 @@ class WeatherForecast(ABC):
         """
         return self.capabilities
 
-    def get_coverage_description(self, coverage_id: str, numbers: list[int] | None = [0]) -> dict[str, Any]:
+    def get_coverage_description(self, coverage_id: str, ensemble_numbers: list[int] | None = None) -> dict[str, Any]:
         """Return the available axis (times, heights) of a coverage.
 
         TODO: Other informations can be fetched, not yet implemented.
 
         Args:
             coverage_id: An id of a coverage, use get_capabilities() to get them.
-
+            ensemble_numbers: For ensemble models only, numbers of the desired 
+                   ensemble members. If None, defaults to the member 0.
         Returns:
             A dictionary containing more info on the coverage.
         """
         
         if self.MODEL_TYPE == "ENSEMBLE":
-            if numbers is None:
-                numbers_to_fetch = range(self.ENSEMBLE_NUMBERS)
+            if ensemble_numbers is None:
+                numbers_to_fetch = [0]
             else: 
-                numbers_to_fetch = numbers
+                numbers_to_fetch = ensemble_numbers
             coverage_description = {}
         else:
             numbers_to_fetch = [None]
@@ -171,7 +172,7 @@ class WeatherForecast(ABC):
         indicator: str | None = None,
         lat: tuple = FRANCE_METRO_LATITUDES,
         long: tuple = FRANCE_METRO_LONGITUDES,
-        numbers: list[int] | None = None,
+        ensemble_numbers: list[int] | None = None,
         heights: list[int] | None = None ,
         pressures: list[int] | None = None,
         forecast_horizons: list[dt.timedelta] | None = None,
@@ -186,6 +187,8 @@ class WeatherForecast(ABC):
             indicator: Indicator of a coverage to retrieve.
             lat: Minimum and maximum latitude.
             long: Minimum and maximum longitude.
+            ensemble_numbers: For ensemble models only, numbers of the desired 
+                   ensemble members. If None, defaults to the member 0.
             heights: Heights in meters.
             pressures: Pressures in hPa.
             forecast_horizons: List of timedelta, representing the forecast horizons in hours.
@@ -201,8 +204,10 @@ class WeatherForecast(ABC):
             pd.DataFrame: The complete run for the specified execution.
         """
         # Numbers cannot be None if the model type is ENSEMBLE
-        if self.MODEL_TYPE == "ENSEMBLE" and numbers is None:
-            numbers = [0]
+        if self.MODEL_TYPE == "ENSEMBLE":
+            if ensemble_numbers is None:
+                ensemble_numbers = [0]
+            logger.info(f"Using {len(ensemble_numbers)} ensemble members")
             
         # Ensure we only have one of coverage_id, indicator
         if not bool(indicator) ^ bool(coverage_id):
@@ -211,7 +216,8 @@ class WeatherForecast(ABC):
             coverage_id = self._get_coverage_id(indicator, run, interval)
         
         logger.info(f"Using `coverage_id={coverage_id}`")
-
+ 
+        
         axis = self.get_coverage_description(coverage_id)
 
         heights = self._raise_if_invalid_or_fetch_default("heights", heights, axis["heights"])
@@ -234,7 +240,7 @@ class WeatherForecast(ABC):
             for forecast_horizon in forecast_horizons
             for pressure in pressures
             for height in heights
-            for number in ([None] if (numbers is None) else numbers)
+            for number in ([None] if (ensemble_numbers is None) else ensemble_numbers)
         ]
 
         return pd.concat(df_list, axis=0).reset_index(drop=True)
@@ -673,7 +679,7 @@ class WeatherForecast(ABC):
         self,
         indicator_names: list[str],
         runs: list[str | None] | None = None,
-        numbers: list[int] | None = None,
+        ensemble_numbers: list[int] | None = None,
         heights: list[int] | None = None,
         pressures: list[int] | None = None,
         intervals: list[str | None] | None = None,
@@ -692,6 +698,8 @@ class WeatherForecast(ABC):
         Args:
             indicator_names (list[str]): A list of indicator names to retrieve data for.
             runs (list[str]): A list of runs for each indicator. Format should be "YYYY-MM-DDTHH:MM:SSZ".
+            ensemble_numbers: For ensemble models only, numbers of the desired 
+                   ensemble members. If None, defaults to the member 0.
             heights (list[int] | None): A list of heights in meters to filter by (default is None).
             pressures (list[int] | None): A list of pressures in hPa to filter by (default is None).
             intervals (list[str] | None): A list of aggregation periods (default is None).
@@ -709,8 +717,8 @@ class WeatherForecast(ABC):
             ValueError: If the length of `heights` does not match the length of `indicator_names`.
         """
         # Numbers cannot be None if the model type is ENSEMBLE
-        if self.MODEL_TYPE == "ENSEMBLE" and numbers is None:
-            numbers = [0]
+        if self.MODEL_TYPE == "ENSEMBLE" and ensemble_numbers is None:
+            ensemble_numbers = [0]
             
         if runs is None:
             runs = [None]
@@ -720,7 +728,7 @@ class WeatherForecast(ABC):
                 run=run,
                 lat=lat,
                 long=long,
-                numbers=numbers,
+                ensemble_numbers=ensemble_numbers,
                 heights=heights,
                 pressures=pressures,
                 intervals=intervals,
@@ -735,7 +743,7 @@ class WeatherForecast(ABC):
         self,
         indicator_names: list[str],
         run: str | None = None,
-        numbers: list[int] | None = None,
+        ensemble_numbers: list[int] | None = None,
         heights: list[int] | None = None,
         pressures: list[int] | None = None,
         intervals: list[str | None] | None = None,
@@ -820,14 +828,14 @@ class WeatherForecast(ABC):
                 run=run,
                 lat=lat,
                 long=long,
-                numbers=[number] if number is not None else None,
+                ensemble_numbers=[number] if number is not None else None,
                 heights=[height] if height is not None else [],
                 pressures=[pressure] if pressure is not None else [],
                 forecast_horizons=forecast_horizons,
                 temp_dir=temp_dir,
             )
             for coverage_id, height, pressure in zip(coverage_ids, heights, pressures)
-            ] for number in ([None] if (numbers is None) else numbers)
+            ] for number in ([None] if (ensemble_numbers is None) else ensemble_numbers)
         ]
         
         coverages_concat = pd.concat([reduce(
