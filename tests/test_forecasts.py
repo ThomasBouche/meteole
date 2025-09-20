@@ -150,7 +150,7 @@ class TestAromeForecast(unittest.TestCase):
             territory=self.territory,
         )
 
-        description = forecast._get_coverage_description("coverage_1")
+        description = forecast._get_coverage_description("coverage_1", ensemble_number=None)
         self.assertIn("wcs:CoverageDescriptions", description)
 
     @patch("meteole._arome.AromeForecast.get_capabilities")
@@ -169,6 +169,7 @@ class TestAromeForecast(unittest.TestCase):
             coverage_id="coverage_1",
             height=None,
             pressure=None,
+            ensemble_number=None,
             forecast_horizon=dt.timedelta(hours=0),
             lat=(37.5, 55.4),
             long=(-12, 16),
@@ -195,6 +196,7 @@ class TestAromeForecast(unittest.TestCase):
             coverage_id="coverage_1",
             height=2,
             pressure=None,
+            ensemble_number=None,
             forecast_horizon=dt.timedelta(hours=0),
             lat=(37.5, 55.4),
             long=(-12, 16),
@@ -240,6 +242,7 @@ class TestAromeForecast(unittest.TestCase):
             coverage_id="toto",
             height=2,
             pressure=None,
+            ensemble_number=None,
             forecast_horizon=dt.timedelta(hours=0),
             lat=(37.5, 55.4),
             long=(-12, 16),
