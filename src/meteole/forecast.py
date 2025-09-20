@@ -147,8 +147,8 @@ class WeatherForecast(ABC):
         else:
             numbers_to_fetch = [None]
             
-        for number in numbers_to_fetch:
-            description = self._get_coverage_description(coverage_id, number)
+        for ensemble_number in numbers_to_fetch:
+            description = self._get_coverage_description(coverage_id, ensemble_number)
             grid_axis = description["wcs:CoverageDescriptions"]["wcs:CoverageDescription"]["gml:domainSet"][
                 "gmlrgrid:ReferenceableGridByVectors"
             ]["gmlrgrid:generalGridAxis"]
@@ -160,10 +160,10 @@ class WeatherForecast(ABC):
                 "heights": self._get_available_feature(grid_axis, "height"),
                 "pressures": self._get_available_feature(grid_axis, "pressure"),
             }
-            if number is None or len(numbers_to_fetch) == 1:
+            if ensemble_number is None or len(numbers_to_fetch) == 1:
                 coverage_description = coverage_description_single
             else:
-                coverage_description[f"number_{number}"] = coverage_description_single
+                coverage_description[f"number_{ensemble_number}"] = coverage_description_single
         
         return coverage_description
 
@@ -229,7 +229,7 @@ class WeatherForecast(ABC):
         df_list = [
             self._get_data_single_forecast(
                 coverage_id=coverage_id,
-                number=number,
+                ensemble_number=ensemble_number,
                 height=height if height != -1 else None,
                 pressure=pressure if pressure != -1 else None,
                 forecast_horizon=forecast_horizon,
@@ -240,7 +240,7 @@ class WeatherForecast(ABC):
             for forecast_horizon in forecast_horizons
             for pressure in pressures
             for height in heights
-            for number in ([None] if (ensemble_numbers is None) else ensemble_numbers)
+            for ensemble_number in ([None] if (ensemble_numbers is None) else ensemble_numbers)
         ]
 
         return pd.concat(df_list, axis=0).reset_index(drop=True)
@@ -428,7 +428,7 @@ class WeatherForecast(ABC):
             logger.error(f"Response: {xml}")
             raise e
 
-    def _get_coverage_description(self, coverage_id: str, number: int | None) -> dict[Any, Any]:
+    def _get_coverage_description(self, coverage_id: str, ensemble_number: int | None) -> dict[Any, Any]:
         """(Protected)
         Get the description of a coverage.
 
@@ -446,7 +446,7 @@ class WeatherForecast(ABC):
             description (dict): the description of the coverage.
         """
         if self.MODEL_TYPE == "ENSEMBLE":
-            url = f"{self._model_base_path}/{self._entry_point.replace('xxx', '{:03}'.format(number))}/DescribeCoverage"
+            url = f"{self._model_base_path}/{self._entry_point.replace('xxx', '{:03}'.format(ensemble_number))}/DescribeCoverage"
         else:
             url = f"{self._model_base_path}/{self._entry_point}/DescribeCoverage" 
         params = {
@@ -519,7 +519,7 @@ class WeatherForecast(ABC):
         self,
         coverage_id: str,
         forecast_horizon: dt.timedelta,
-        number: int | None,
+        ensemble_number: int | None,
         pressure: int | None,
         height: int | None,
         lat: tuple,
@@ -544,7 +544,7 @@ class WeatherForecast(ABC):
 
         grib_binary: bytes = self._get_coverage_file(
             coverage_id=coverage_id,
-            number=number,
+            ensemble_number=ensemble_number,
             height=height,
             pressure=pressure,
             forecast_horizon_in_seconds=int(forecast_horizon.total_seconds()),
@@ -563,7 +563,7 @@ class WeatherForecast(ABC):
             },
             inplace=True,
         )
-        if number is None:
+        if ensemble_number is None:
             known_columns = {"latitude", "longitude", "run", "forecast_horizon", "heightAboveGround", "isobaricInhPa"}
         else:    
             known_columns = {"latitude", "longitude", "number", "run", "forecast_horizon", "heightAboveGround", "isobaricInhPa"}
@@ -584,7 +584,9 @@ class WeatherForecast(ABC):
 
         new_indicator_column = f"{base_name}{suffix}"
         df.rename(columns={indicator_column: new_indicator_column}, inplace=True)
-
+        if self.MODEL_TYPE == "ENSEMBLE":
+            df.rename(columns={"number": "ensemble_number"}, inplace=True)
+        
         df.drop(
             columns=["isobaricInhPa", "heightAboveGround", "meanSea", "potentialVorticity"],
             errors="ignore",
@@ -596,7 +598,7 @@ class WeatherForecast(ABC):
     def _get_coverage_file(
         self,
         coverage_id: str,
-        number: int | None,
+        ensemble_number: int | None,
         height: int | None = None,
         pressure: int | None = None,
         forecast_horizon_in_seconds: int = 0,
@@ -628,10 +630,10 @@ class WeatherForecast(ABC):
         See Also:
             raster.plot_tiff_file: Method for plotting raster data stored in TIFF format.
         """
-        if number is None:
+        if ensemble_number is None:
             url = f"{self._model_base_path}/{self._entry_point}/GetCoverage"  
         else:
-            url = f"{self._model_base_path}/{self._entry_point.replace('xxx', '{:03}'.format(number))}/GetCoverage"  
+            url = f"{self._model_base_path}/{self._entry_point.replace('xxx', '{:03}'.format(ensemble_number))}/GetCoverage"  
 
         params = {
             "service": "WCS",
@@ -828,21 +830,21 @@ class WeatherForecast(ABC):
                 run=run,
                 lat=lat,
                 long=long,
-                ensemble_numbers=[number] if number is not None else None,
+                ensemble_numbers=[ensemble_number] if ensemble_number is not None else None,
                 heights=[height] if height is not None else [],
                 pressures=[pressure] if pressure is not None else [],
                 forecast_horizons=forecast_horizons,
                 temp_dir=temp_dir,
             )
             for coverage_id, height, pressure in zip(coverage_ids, heights, pressures)
-            ] for number in ([None] if (ensemble_numbers is None) else ensemble_numbers)
+            ] for ensemble_number in ([None] if (ensemble_numbers is None) else ensemble_numbers)
         ]
         
         coverages_concat = pd.concat([reduce(
             lambda left, right: pd.merge(
                 left,
                 right,
-                on=["latitude", "longitude", "number", "run", "forecast_horizon"] if self.MODEL_TYPE == "ENSEMBLE" else ["latitude", "longitude", "run", "forecast_horizon"],
+                on=["latitude", "longitude", "ensemble_number", "run", "forecast_horizon"] if self.MODEL_TYPE == "ENSEMBLE" else ["latitude", "longitude", "run", "forecast_horizon"],
                 how="inner",
                 validate="one_to_one",
             ),
