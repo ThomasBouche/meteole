@@ -97,7 +97,7 @@ class MeteoFranceClient(BaseClient):
         # Initialize the requests session object
         self._connect()
 
-    def get(self, path: str, *, params: dict[str, Any] | None = None, max_retries: int = 10) -> Response:
+    def get(self, path: str, *, params: dict[str, Any] | None = None, max_retries: int = 5) -> Response:
         """
         Make a GET request to the API with optional retries.
 
