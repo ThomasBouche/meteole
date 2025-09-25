@@ -72,7 +72,7 @@ class AromePIForecast(WeatherForecast):
     INSTANT_INDICATORS: list[str] = AROMEPI_INSTANT_INDICATORS
     BASE_ENTRY_POINT: str = "wcs/MF-NWP-HIGHRES-AROMEPI"
     MODEL_TYPE: str = "DETER"
-    ENSEMBLE_NUMBERS = 1
+    ENSEMBLE_NUMBERS: int = 1
     DEFAULT_TERRITORY: str = "FRANCE"
     DEFAULT_PRECISION: float = 0.01
     CLIENT_CLASS: type[BaseClient] = MeteoFranceClient

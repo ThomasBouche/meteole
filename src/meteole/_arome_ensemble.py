@@ -63,7 +63,7 @@ class AromePEForecast(WeatherForecast):
     MODEL_NAME: str = "pearome"
     BASE_ENTRY_POINT: str = "wcs/MF-NWP-HIGHRES-PEARO" 
     MODEL_TYPE: str = "ENSEMBLE"
-    ENSEMBLE_NUMBERS = 25
+    ENSEMBLE_NUMBERS: int = 25
     DEFAULT_TERRITORY: str = "FRANCE"
     CLIENT_CLASS: type[BaseClient] = MeteoFranceClient
     INDICATORS: list[str] = AROME_INSTANT_INDICATORS + AROME_OTHER_INDICATORS

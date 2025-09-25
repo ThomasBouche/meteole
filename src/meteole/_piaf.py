@@ -39,7 +39,7 @@ class PiafForecast(WeatherForecast):
     INSTANT_INDICATORS: list[str] = PIAF_INSTANT_INDICATORS
     BASE_ENTRY_POINT: str = "wcs/MF-NWP-HIGHRES-PIAF"
     MODEL_TYPE: str = "DETER"
-    ENSEMBLE_NUMBERS = 1
+    ENSEMBLE_NUMBERS: int = 1
     DEFAULT_TERRITORY: str = "FRANCE"
     DEFAULT_PRECISION: float = 0.01
     CLIENT_CLASS: type[BaseClient] = MeteoFranceClient

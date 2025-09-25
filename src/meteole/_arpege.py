@@ -80,7 +80,7 @@ class ArpegeForecast(WeatherForecast):
     INSTANT_INDICATORS: list[str] = ARPEGE_INSTANT_INDICATORS
     BASE_ENTRY_POINT: str = "wcs/MF-NWP-GLOBAL-ARPEGE"
     MODEL_TYPE: str = "DETER"
-    ENSEMBLE_NUMBERS = 1
+    ENSEMBLE_NUMBERS: int = 1
     DEFAULT_TERRITORY: str = "EUROPE"
     RELATION_TERRITORY_TO_PREC_ARPEGE: dict[str, float] = {"EUROPE": 0.1, "GLOBE": 0.25, "ATOURX": 0.1, "EURAT": 0.05}
     CLIENT_CLASS: type[BaseClient] = MeteoFranceClient
