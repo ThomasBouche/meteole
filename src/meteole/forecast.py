@@ -441,7 +441,8 @@ class WeatherForecast(ABC):
         Args:
             coverage_id (str): the Coverage ID. Use :meth:`get_coverage` to access the available coverage ids.
                 By default use the latest temperature coverage ID.
-
+            ensemble_number: For ensemble models only, number of the desired ensemble member.
+                   
         Returns:
             description (dict): the description of the coverage.
         """
@@ -534,6 +535,7 @@ class WeatherForecast(ABC):
             height (int): height in meters
             pressure (int): pressure in hPa
             forecast_horizon (dt.timedelta): the forecast horizon (how much time ahead?)
+            ensemble_number (int): For ensemble models only, number of the desired ensemble member.
             lat (tuple): minimum and maximum latitude
             long (tuple): minimum and maximum longitude
             temp_dir (str | None): Directory to store the temporary file. Defaults to None.
@@ -610,6 +612,7 @@ class WeatherForecast(ABC):
 
         Args:
             coverage_id (str): The coverage ID to retrieve. Use `get_coverage` to list available coverage IDs.
+            ensemble_number: For ensemble models only, number of the desired ensemble member.
             height (int, optional): The height above ground level in meters. Defaults to 2 meters.
                 If not provided, no height subset is applied.
             pressure (int, optional): The pressure level in hPa. If not provided, no pressure subset is applied.
@@ -764,6 +767,8 @@ class WeatherForecast(ABC):
         Args:
             indicator_names (list[str]): A list of indicator names to retrieve data for.
             run (str): A single runs for each indicator. Format should be "YYYY-MM-DDTHH:MM:SSZ".
+            ensemble_numbers: For ensemble models only, numbers of the desired 
+                   ensemble members. If None, defaults to the member 0.
             heights (list[int] | None): A list of heights in meters to filter by (default is None).
             pressures (list[int] | None): A list of pressures in hPa to filter by (default is None).
             intervals (Optional[list[str]]): A list of aggregation periods (default is None).
