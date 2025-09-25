@@ -91,24 +91,8 @@ df_arome = arome_client.get_coverage(
     lat = (41.33356, 51.0889),                                                 # Optional: latitude
     coverage_id=None,                                                          # Optional: an alternative to indicator/run/interval
     temp_dir=None,                                                             # Optional: Directory to store the temporary file
-)
-
-# For the ensemble models (AromePE), the numbers of the scenarios to retrieve must be given
-pearome_client = AromePEForecast(application_id=APPLICATION_ID) 
-df_pearome = pearome_client.get_coverage(
-    indicator="TEMPERATURE__SPECIFIC_HEIGHT_LEVEL_ABOVE_GROUND",
-    numbers=range(3), # the numbers of the scenarios produced to retrieve (from 0 to 24)
-    interval=None,                                                           
-    forecast_horizons=[                                                       
-      dt.timedelta(hours=1),
-      dt.timedelta(hours=2),
-    ],            
-    heights=[2,],                                                             
-    pressures=None,                                                            
-    long = (-5.1413, 9.5602),
-    lat = (41.33356, 51.0889),                                                                                                          
-    temp_dir=None,                                                          
-        )
+    ensemble_numbers=range(3),                                                 # Optional: Only for ensemble models (AromePE), the number of scenarios
+    )
 ```
 Note: The coverage_id can be used instead of indicator, run, and interval.
 
