@@ -9,7 +9,7 @@ import tempfile
 from abc import ABC, abstractmethod
 from functools import reduce
 from importlib.util import find_spec
-from typing import Any
+from typing import Any, Optional
 
 import pandas as pd
 import xarray as xr
@@ -74,19 +74,20 @@ class WeatherForecast(ABC):
             token: The API token for authentication. Defaults to None.
             application_id: The Application ID for authentication. Defaults to None.
         """
-        
+
         self.territory = territory  # "FRANCE", "ANTIL", or others (see API doc)
         self.precision = precision
         self._validate_parameters()
 
         self._capabilities: pd.DataFrame | None = None
-        
-        if self.MODEL_TYPE == "ENSEMBLE":  
-            self._entry_point: str = (
+        self._entry_point: str
+
+        if self.MODEL_TYPE == "ENSEMBLE":
+            self._entry_point = (
                 f"{self.BASE_ENTRY_POINT}xxx-{self.PRECISION_FLOAT_TO_STR[self.precision]}-{self.territory}-WCS"
             )
         else:
-            self._entry_point: str = (
+            self._entry_point = (
                 f"{self.BASE_ENTRY_POINT}-{self.PRECISION_FLOAT_TO_STR[self.precision]}-{self.territory}-WCS"
             )
         self._model_base_path = self.MODEL_NAME + "/" + self.API_VERSION
@@ -125,34 +126,37 @@ class WeatherForecast(ABC):
         """
         return self.capabilities
 
-    def get_coverage_description(self, coverage_id: str, ensemble_numbers: list[int] | None = None) -> dict[str, Any]:
+    def get_coverage_description(
+        self, coverage_id: str, ensemble_numbers: list[Optional[int]] | None = None
+    ) -> dict[str, Any]:
         """Return the available axis (times, heights) of a coverage.
 
         TODO: Other informations can be fetched, not yet implemented.
 
         Args:
             coverage_id: An id of a coverage, use get_capabilities() to get them.
-            ensemble_numbers: For ensemble models only, numbers of the desired 
+            ensemble_numbers: For ensemble models only, numbers of the desired
                    ensemble members. If None, defaults to the member 0.
         Returns:
             A dictionary containing more info on the coverage.
         """
-        
+        numbers_to_fetch: list[Optional[int]]
+
         if self.MODEL_TYPE == "ENSEMBLE":
             if ensemble_numbers is None:
                 numbers_to_fetch = [0]
-            else: 
+            else:
                 numbers_to_fetch = ensemble_numbers
             coverage_description = {}
         else:
             numbers_to_fetch = [None]
-            
+
         for ensemble_number in numbers_to_fetch:
             description = self._get_coverage_description(coverage_id, ensemble_number)
             grid_axis = description["wcs:CoverageDescriptions"]["wcs:CoverageDescription"]["gml:domainSet"][
                 "gmlrgrid:ReferenceableGridByVectors"
             ]["gmlrgrid:generalGridAxis"]
-            
+
             coverage_description_single = {
                 "forecast_horizons": [
                     dt.timedelta(seconds=time) for time in self._get_available_feature(grid_axis, "time")
@@ -164,7 +168,7 @@ class WeatherForecast(ABC):
                 coverage_description = coverage_description_single
             else:
                 coverage_description[f"number_{ensemble_number}"] = coverage_description_single
-        
+
         return coverage_description
 
     def get_coverage(
@@ -173,7 +177,7 @@ class WeatherForecast(ABC):
         lat: tuple = FRANCE_METRO_LATITUDES,
         long: tuple = FRANCE_METRO_LONGITUDES,
         ensemble_numbers: list[int] | None = None,
-        heights: list[int] | None = None ,
+        heights: list[int] | None = None,
         pressures: list[int] | None = None,
         forecast_horizons: list[dt.timedelta] | None = None,
         run: str | None = None,
@@ -187,7 +191,7 @@ class WeatherForecast(ABC):
             indicator: Indicator of a coverage to retrieve.
             lat: Minimum and maximum latitude.
             long: Minimum and maximum longitude.
-            ensemble_numbers: For ensemble models only, numbers of the desired 
+            ensemble_numbers: For ensemble models only, numbers of the desired
                    ensemble members. If None, defaults to the member 0.
             heights: Heights in meters.
             pressures: Pressures in hPa.
@@ -208,16 +212,15 @@ class WeatherForecast(ABC):
             if ensemble_numbers is None:
                 ensemble_numbers = [0]
             logger.info(f"Using {len(ensemble_numbers)} ensemble members")
-            
+
         # Ensure we only have one of coverage_id, indicator
         if not bool(indicator) ^ bool(coverage_id):
             raise ValueError("Argument `indicator` or `coverage_id` need to be set (only one of them)")
         if indicator is not None:
             coverage_id = self._get_coverage_id(indicator, run, interval)
-        
+
         logger.info(f"Using `coverage_id={coverage_id}`")
- 
-        
+
         axis = self.get_coverage_description(coverage_id)
 
         heights = self._raise_if_invalid_or_fetch_default("heights", heights, axis["heights"])
@@ -225,7 +228,7 @@ class WeatherForecast(ABC):
         forecast_horizons = self._raise_if_invalid_or_fetch_default(
             "forecast_horizons", forecast_horizons, axis["forecast_horizons"]
         )
-       
+
         df_list = [
             self._get_data_single_forecast(
                 coverage_id=coverage_id,
@@ -254,8 +257,7 @@ class WeatherForecast(ABC):
         """
 
         logger.info("Fetching all available coverages...")
-        
-    
+
         capabilities = self._fetch_capabilities()
         df_capabilities = pd.DataFrame(capabilities["wcs:Capabilities"]["wcs:Contents"]["wcs:CoverageSummary"])
         df_capabilities = df_capabilities.rename(
@@ -272,13 +274,11 @@ class WeatherForecast(ABC):
         df_capabilities["interval"] = [
             coverage_id.split("___")[1].split("Z")[1].strip("_") for coverage_id in df_capabilities["id"]
         ]
-            
+
         nb_indicators = len(df_capabilities["indicator"].unique())
         nb_coverage_ids = df_capabilities.shape[0]
         runs = df_capabilities["run"].unique()
-        
-    
-        
+
         logger.info(
             f"\n"
             f"\t Successfully fetched {nb_coverage_ids} coverages,\n"
@@ -287,8 +287,7 @@ class WeatherForecast(ABC):
             f"\n"
             f"\t Default run for `get_coverage`: {runs.max()})"
         )
-  
-        
+
         return df_capabilities
 
     def _get_coverage_id(
@@ -400,12 +399,12 @@ class WeatherForecast(ABC):
         Returns:
             Raw capabilities (dictionary).
         """
-        
-        if self.MODEL_TYPE == "ENSEMBLE":        
+
+        if self.MODEL_TYPE == "ENSEMBLE":
             url = f"{self._model_base_path}/{self._entry_point.replace('xxx', '001')}/GetCapabilities"
         else:
             url = f"{self._model_base_path}/{self._entry_point}/GetCapabilities"
-            
+
         params = {
             "service": "WCS",
             "version": "2.0.1",
@@ -442,14 +441,16 @@ class WeatherForecast(ABC):
             coverage_id (str): the Coverage ID. Use :meth:`get_coverage` to access the available coverage ids.
                 By default use the latest temperature coverage ID.
             ensemble_number: For ensemble models only, number of the desired ensemble member.
-                   
+
         Returns:
             description (dict): the description of the coverage.
         """
         if self.MODEL_TYPE == "ENSEMBLE":
-            url = f"{self._model_base_path}/{self._entry_point.replace('xxx', '{:03}'.format(ensemble_number))}/DescribeCoverage"
+            url = (
+                f"{self._model_base_path}/{self._entry_point.replace('xxx', f'{ensemble_number:03}')}/DescribeCoverage"
+            )
         else:
-            url = f"{self._model_base_path}/{self._entry_point}/DescribeCoverage" 
+            url = f"{self._model_base_path}/{self._entry_point}/DescribeCoverage"
         params = {
             "service": "WCS",
             "version": "2.0.1",
@@ -567,9 +568,17 @@ class WeatherForecast(ABC):
         )
         if ensemble_number is None:
             known_columns = {"latitude", "longitude", "run", "forecast_horizon", "heightAboveGround", "isobaricInhPa"}
-        else:    
-            known_columns = {"latitude", "longitude", "number", "run", "forecast_horizon", "heightAboveGround", "isobaricInhPa"}
- 
+        else:
+            known_columns = {
+                "latitude",
+                "longitude",
+                "number",
+                "run",
+                "forecast_horizon",
+                "heightAboveGround",
+                "isobaricInhPa",
+            }
+
         indicator_column = (set(df.columns) - known_columns).pop()
 
         if indicator_column == "unknown":
@@ -588,7 +597,7 @@ class WeatherForecast(ABC):
         df.rename(columns={indicator_column: new_indicator_column}, inplace=True)
         if self.MODEL_TYPE == "ENSEMBLE":
             df.rename(columns={"number": "ensemble_number"}, inplace=True)
-        
+
         df.drop(
             columns=["isobaricInhPa", "heightAboveGround", "meanSea", "potentialVorticity"],
             errors="ignore",
@@ -634,9 +643,9 @@ class WeatherForecast(ABC):
             raster.plot_tiff_file: Method for plotting raster data stored in TIFF format.
         """
         if ensemble_number is None:
-            url = f"{self._model_base_path}/{self._entry_point}/GetCoverage"  
+            url = f"{self._model_base_path}/{self._entry_point}/GetCoverage"
         else:
-            url = f"{self._model_base_path}/{self._entry_point.replace('xxx', '{:03}'.format(ensemble_number))}/GetCoverage"  
+            url = f"{self._model_base_path}/{self._entry_point.replace('xxx', f'{ensemble_number:03}')}/GetCoverage"
 
         params = {
             "service": "WCS",
@@ -703,7 +712,7 @@ class WeatherForecast(ABC):
         Args:
             indicator_names (list[str]): A list of indicator names to retrieve data for.
             runs (list[str]): A list of runs for each indicator. Format should be "YYYY-MM-DDTHH:MM:SSZ".
-            ensemble_numbers: For ensemble models only, numbers of the desired 
+            ensemble_numbers: For ensemble models only, numbers of the desired
                    ensemble members. If None, defaults to the member 0.
             heights (list[int] | None): A list of heights in meters to filter by (default is None).
             pressures (list[int] | None): A list of pressures in hPa to filter by (default is None).
@@ -724,7 +733,7 @@ class WeatherForecast(ABC):
         # Numbers cannot be None if the model type is ENSEMBLE
         if self.MODEL_TYPE == "ENSEMBLE" and ensemble_numbers is None:
             ensemble_numbers = [0]
-            
+
         if runs is None:
             runs = [None]
         coverages = [
@@ -767,7 +776,7 @@ class WeatherForecast(ABC):
         Args:
             indicator_names (list[str]): A list of indicator names to retrieve data for.
             run (str): A single runs for each indicator. Format should be "YYYY-MM-DDTHH:MM:SSZ".
-            ensemble_numbers: For ensemble models only, numbers of the desired 
+            ensemble_numbers: For ensemble models only, numbers of the desired
                    ensemble members. If None, defaults to the member 0.
             heights (list[int] | None): A list of heights in meters to filter by (default is None).
             pressures (list[int] | None): A list of pressures in hPa to filter by (default is None).
@@ -828,37 +837,43 @@ class WeatherForecast(ABC):
         else:
             forecast_horizons = [self.find_common_forecast_horizons(coverage_ids)[0]]
             logger.info(f"Using common forecast_horizons `forecast_horizons={forecast_horizons}`.")
-        
-        coverages = [[
-            self.get_coverage(
-                coverage_id=coverage_id,
-                run=run,
-                lat=lat,
-                long=long,
-                ensemble_numbers=[ensemble_number] if ensemble_number is not None else None,
-                heights=[height] if height is not None else [],
-                pressures=[pressure] if pressure is not None else [],
-                forecast_horizons=forecast_horizons,
-                temp_dir=temp_dir,
-            )
-            for coverage_id, height, pressure in zip(coverage_ids, heights, pressures)
-            ] for ensemble_number in ([None] if (ensemble_numbers is None) else ensemble_numbers)
-        ]
-        
-        coverages_concat = pd.concat([reduce(
-            lambda left, right: pd.merge(
-                left,
-                right,
-                on=["latitude", "longitude", "ensemble_number", "run", "forecast_horizon"] if self.MODEL_TYPE == "ENSEMBLE" else ["latitude", "longitude", "run", "forecast_horizon"],
-                how="inner",
-                validate="one_to_one",
-            ),
-            coverages[i],
-            ) 
-            for i in range(len(coverages))
+
+        coverages = [
+            [
+                self.get_coverage(
+                    coverage_id=coverage_id,
+                    run=run,
+                    lat=lat,
+                    long=long,
+                    ensemble_numbers=[ensemble_number] if ensemble_number is not None else None,
+                    heights=[height] if height is not None else [],
+                    pressures=[pressure] if pressure is not None else [],
+                    forecast_horizons=forecast_horizons,
+                    temp_dir=temp_dir,
+                )
+                for coverage_id, height, pressure in zip(coverage_ids, heights, pressures)
             ]
-            )
-        
+            for ensemble_number in ([None] if (ensemble_numbers is None) else ensemble_numbers)
+        ]
+
+        coverages_concat = pd.concat(
+            [
+                reduce(
+                    lambda left, right: pd.merge(
+                        left,
+                        right,
+                        on=["latitude", "longitude", "ensemble_number", "run", "forecast_horizon"]
+                        if self.MODEL_TYPE == "ENSEMBLE"
+                        else ["latitude", "longitude", "run", "forecast_horizon"],
+                        how="inner",
+                        validate="one_to_one",
+                    ),
+                    coverages[i],
+                )
+                for i in range(len(coverages))
+            ]
+        )
+
         return coverages_concat
 
     def _get_forecast_horizons(self, coverage_ids: list[str]) -> list[list[dt.timedelta]]:

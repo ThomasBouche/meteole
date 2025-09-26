@@ -403,9 +403,14 @@ class TestAromeForecast(unittest.TestCase):
         )
 
         result = forecast.get_combined_coverage(
-            indicator_names=indicator_names, runs=runs, heights=heights, 
-            pressures=pressures, intervals=intervals, 
-            lat=lat, long=long, forecast_horizons=forecast_horizons
+            indicator_names=indicator_names,
+            runs=runs,
+            heights=heights,
+            pressures=pressures,
+            intervals=intervals,
+            lat=lat,
+            long=long,
+            forecast_horizons=forecast_horizons,
         )
         pd.testing.assert_frame_equal(result, expected_result)
 
@@ -446,10 +451,15 @@ class TestAromeForecast(unittest.TestCase):
 
         with self.assertRaises(ValueError) as context:
             forecast.get_combined_coverage(
-            indicator_names=indicator_names, runs=runs, heights=heights, 
-            pressures=pressures, intervals=intervals, 
-            lat=lat, long=long, forecast_horizons=forecast_horizons
-        )
+                indicator_names=indicator_names,
+                runs=runs,
+                heights=heights,
+                pressures=pressures,
+                intervals=intervals,
+                lat=lat,
+                long=long,
+                forecast_horizons=forecast_horizons,
+            )
         self.assertIn("are not valid for these coverage_ids", str(context.exception))
 
     @patch("meteole._arome.AromeForecast._get_coverage_id")
@@ -541,9 +551,14 @@ class TestAromeForecast(unittest.TestCase):
         )
 
         result = forecast.get_combined_coverage(
-            indicator_names=indicator_names, runs=runs, heights=heights, 
-            pressures=pressures, intervals=intervals, 
-            lat=lat, long=long, forecast_horizons=forecast_horizons
+            indicator_names=indicator_names,
+            runs=runs,
+            heights=heights,
+            pressures=pressures,
+            intervals=intervals,
+            lat=lat,
+            long=long,
+            forecast_horizons=forecast_horizons,
         )
         pd.testing.assert_frame_equal(result, expected_result)
 
@@ -776,4 +791,3 @@ class TestGetAvailableFeature(unittest.TestCase):
     def test_get_available_feature_not_found(self):
         result = AromeForecast._get_available_feature(self.grid_axis, "nonexistent")
         self.assertEqual(result, [])
-

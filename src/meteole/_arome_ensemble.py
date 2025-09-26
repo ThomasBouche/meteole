@@ -61,7 +61,7 @@ class AromePEForecast(WeatherForecast):
     """Access the PE-AROME ensemble forecast data from Meteo-France API."""
 
     MODEL_NAME: str = "pearome"
-    BASE_ENTRY_POINT: str = "wcs/MF-NWP-HIGHRES-PEARO" 
+    BASE_ENTRY_POINT: str = "wcs/MF-NWP-HIGHRES-PEARO"
     MODEL_TYPE: str = "ENSEMBLE"
     ENSEMBLE_NUMBERS: int = 25
     DEFAULT_TERRITORY: str = "FRANCE"
