@@ -150,7 +150,7 @@ class TestAromeForecast(unittest.TestCase):
             territory=self.territory,
         )
 
-        description = forecast._get_coverage_description("coverage_1")
+        description = forecast._get_coverage_description("coverage_1", ensemble_number=None)
         self.assertIn("wcs:CoverageDescriptions", description)
 
     @patch("meteole._arome.AromeForecast.get_capabilities")
@@ -169,6 +169,7 @@ class TestAromeForecast(unittest.TestCase):
             coverage_id="coverage_1",
             height=None,
             pressure=None,
+            ensemble_number=None,
             forecast_horizon=dt.timedelta(hours=0),
             lat=(37.5, 55.4),
             long=(-12, 16),
@@ -195,6 +196,7 @@ class TestAromeForecast(unittest.TestCase):
             coverage_id="coverage_1",
             height=2,
             pressure=None,
+            ensemble_number=None,
             forecast_horizon=dt.timedelta(hours=0),
             lat=(37.5, 55.4),
             long=(-12, 16),
@@ -240,6 +242,7 @@ class TestAromeForecast(unittest.TestCase):
             coverage_id="toto",
             height=2,
             pressure=None,
+            ensemble_number=None,
             forecast_horizon=dt.timedelta(hours=0),
             lat=(37.5, 55.4),
             long=(-12, 16),
@@ -400,7 +403,14 @@ class TestAromeForecast(unittest.TestCase):
         )
 
         result = forecast.get_combined_coverage(
-            indicator_names, runs, heights, pressures, intervals, lat, long, forecast_horizons
+            indicator_names=indicator_names,
+            runs=runs,
+            heights=heights,
+            pressures=pressures,
+            intervals=intervals,
+            lat=lat,
+            long=long,
+            forecast_horizons=forecast_horizons,
         )
         pd.testing.assert_frame_equal(result, expected_result)
 
@@ -441,7 +451,14 @@ class TestAromeForecast(unittest.TestCase):
 
         with self.assertRaises(ValueError) as context:
             forecast.get_combined_coverage(
-                indicator_names, runs, heights, pressures, intervals, lat, long, forecast_horizons
+                indicator_names=indicator_names,
+                runs=runs,
+                heights=heights,
+                pressures=pressures,
+                intervals=intervals,
+                lat=lat,
+                long=long,
+                forecast_horizons=forecast_horizons,
             )
         self.assertIn("are not valid for these coverage_ids", str(context.exception))
 
@@ -534,7 +551,14 @@ class TestAromeForecast(unittest.TestCase):
         )
 
         result = forecast.get_combined_coverage(
-            indicator_names, runs, heights, pressures, intervals, lat, long, forecast_horizons
+            indicator_names=indicator_names,
+            runs=runs,
+            heights=heights,
+            pressures=pressures,
+            intervals=intervals,
+            lat=lat,
+            long=long,
+            forecast_horizons=forecast_horizons,
         )
         pd.testing.assert_frame_equal(result, expected_result)
 

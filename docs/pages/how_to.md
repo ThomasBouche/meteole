@@ -1,3 +1,4 @@
+
 Ensure that you have correctly installed **Meteole** before, check the [Installation](installation.md) page :wrench:
 
 ## Get a token, an API key or an application ID
@@ -46,14 +47,17 @@ client.get_vignette()
 
 ## Get data
 
-Meteole allows you to retrieve forecasts for a wide range of weather indicators. Here's how to get started with AROME, AROME INSTANTANE, ARPEGE or PIAF:
+Meteole allows you to retrieve forecasts for a wide range of weather indicators. Here's how to get started with AROME, AROME-PE, AROME INSTANTANE, ARPEGE or PIAF:
 
-| Characteristics  | AROME                      | ARPEGE                      | AROME INSTANTANE               | PIAF               |
-|------------------|----------------------------|-----------------------------|--------------------------------| -------------------------------|
-| Resolution       | 1.3 km                     | 10 km                       | 1.3 km                         | 1.3 km                         |
-| Update Frequency | Every 3 hours              | Every 6 hours               | Every 1 hour                   | Every 10 minutes |
-| Forecast Range   | Every hour, up to 51 hours | Every hour, up to 114 hours | Every 15 minutes, up to 360 minutes | Every 5 minutes, up to 195 minutes |
+| Characteristics  | AROME                      | AROME-PE                   | ARPEGE                      | AROME INSTANTANE               | PIAF               |
+|------------------|----------------------------|----------------------------|-----------------------------|--------------------------------| -------------------------------|
+| Resolution       | 1.3 km                     | 2.8 km                     | 10 km                       | 1.3 km                         | 1.3 km                         |
+| Update Frequency | Every 3 hours              | Every 6 hours              | Every 6 hours               | Every 1 hour                   | Every 10 minutes |
+| Forecast Range   | Every hour, up to 51 hours | Every hour, up to 51 hours | Every hour, up to 114 hours | Every 15 minutes, up to 360 minutes | Every 5 minutes, up to 195 minutes |
+| Numbers of scenarios   | 1 | 25 | 1 | 1 | 1 |
 
+The AromePE model is an ensemble model. Instead of making a single forecast of the most likely weather, a set (or ensemble) of forecasts is produced. This set of forecasts aims to give an indication of the range of possible future states of the atmosphere ([from Wikipedia](https://en.wikipedia.org/wiki/Ensemble_forecasting)). It provides 25 scenarios of the possible weather parameters instead of one for the standard determinist models. 
+ 
 *note : the date of the run cannot be more than 4 days in the past. Consequently, change the date of the run in the example below.*
 
 ```python
@@ -89,3 +93,5 @@ df_arome = arome_client.get_coverage(
 ```
 
 The `get_combined_coverage` method allows you to retrieve weather data for multiple indicators at the same time, streamlining the process of gathering forecasts for different parameters (e.g., temperature, wind speed, etc.). For detailed guidance on using this feature, refer to this [tutorial](https://github.com/MAIF/meteole/tree/docs/update_readme/tutorial/tutorial/Fetch_forecast_for_multiple_indicators.ipynb).
+
+The use of ensemble models is slightly different as they retrieve several forecast scenarios for each run. See this [tutorial](https://github.com/MAIF/meteole/tree/docs/update_readme/tutorial/tutorial/Fetch_forecasts_ensemble.ipynb) for a guided example.
