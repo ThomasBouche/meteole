@@ -50,11 +50,14 @@ Create an account on [the Météo-France API portal](https://portail-api.meteofr
 
 Meteole allows you to retrieve forecasts for a wide range of weather indicators. Here's how to get started:
 
-| Characteristics  | AROME                | ARPEGE                      | AROME INSTANTANE               | PIAF               |
-|------------------|----------------------|-----------------------------| -------------------------------| -------------------------------|
-| Resolution       | 1.3 km               | 10 km                       | 1.3 km                         | 1.3 km                         |
-| Update Frequency | Every 3 hours        | Every 6 hours               | Every 1 hour                   | Every 10 minutes |
-| Forecast Range   | Every hour, up to 51 hours | Every hour, up to 114 hours | Every 15 minutes, up to 360 minutes | Every 5 minutes, up to 195 minutes |
+| Characteristics  | AROME                      | AROME-PE                   | ARPEGE                      | AROME INSTANTANE               | PIAF               |
+|------------------|----------------------------|----------------------------|-----------------------------|--------------------------------| -------------------------------|
+| Resolution       | 1.3 km                     | 2.8 km                     | 10 km                       | 1.3 km                         | 1.3 km                         |
+| Update Frequency | Every 3 hours              | Every 6 hours              | Every 6 hours               | Every 1 hour                   | Every 10 minutes |
+| Forecast Range   | Every hour, up to 51 hours | Every hour, up to 51 hours | Every hour, up to 114 hours | Every 15 minutes, up to 360 minutes | Every 5 minutes, up to 195 minutes |
+| Numbers of scenarios   | 1 | 25 | 1 | 1 | 1 |
+
+The AromePE model is an ensemble model. Instead of making a single forecast of the most likely weather, a set (or ensemble) of forecasts is produced. This set of forecasts aims to give an indication of the range of possible future states of the atmosphere ([from Wikipedia](https://en.wikipedia.org/wiki/Ensemble_forecasting)). It provides 25 scenarios of the possible weather parameters instead of one for the standard determinist models.
 
 *note : the date of the run cannot be more than 4 days in the past. Consequently, change the date of the run in the example below.*
 
@@ -88,7 +91,8 @@ df_arome = arome_client.get_coverage(
     lat = (41.33356, 51.0889),                                                 # Optional: latitude
     coverage_id=None,                                                          # Optional: an alternative to indicator/run/interval
     temp_dir=None,                                                             # Optional: Directory to store the temporary file
-)
+    ensemble_numbers=range(3),                                                 # Optional: Only for ensemble models (AromePE), the number of scenarios
+    )
 ```
 Note: The coverage_id can be used instead of indicator, run, and interval.
 
