@@ -9,7 +9,7 @@ import tempfile
 from abc import ABC, abstractmethod
 from functools import reduce
 from importlib.util import find_spec
-from typing import Any, Optional
+from typing import Any
 
 import pandas as pd
 import xarray as xr
@@ -127,7 +127,7 @@ class WeatherForecast(ABC):
         return self.capabilities
 
     def get_coverage_description(
-        self, coverage_id: str, ensemble_numbers: list[Optional[int]] | None = None
+        self, coverage_id: str, ensemble_numbers: list[int | None] | None = None
     ) -> dict[str, Any]:
         """Return the available axis (times, heights) of a coverage.
 
@@ -140,7 +140,7 @@ class WeatherForecast(ABC):
         Returns:
             A dictionary containing more info on the coverage.
         """
-        numbers_to_fetch: list[Optional[int]]
+        numbers_to_fetch: list[int | None]
 
         if self.MODEL_TYPE == "ENSEMBLE":
             if ensemble_numbers is None:
