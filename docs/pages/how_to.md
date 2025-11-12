@@ -54,7 +54,7 @@ Meteole allows you to retrieve forecasts for a wide range of weather indicators.
 | Resolution       | 1.3 km                     | 2.8 km                     | 10 km                       | 10 km                          | 1.3 km                         | 1.3 km                         |
 | Update Frequency | Every 3 hours              | Every 6 hours              | Every 6 hours               | Every 6 hours                  | Every 1 hour                   | Every 10 minutes |
 | Forecast Range   | Every hour, up to 51 hours | Every hour, up to 51 hours | Every hour, up to 114 hours | Every hour up to 48 hours, then every 3 hours up to 114 hours | Every 15 minutes, up to 360 minutes | Every 5 minutes, up to 195 minutes |
-| Numbers of scenarios   | 1 | 25 | 1 | 35 | 1 | | 1 |
+| Numbers of scenarios   | 1 | 25 | 1 | 35 | 1 | 1 |
 
 The AromePE model is an ensemble model. Instead of making a single forecast of the most likely weather, a set (or ensemble) of forecasts is produced. This set of forecasts aims to give an indication of the range of possible future states of the atmosphere ([from Wikipedia](https://en.wikipedia.org/wiki/Ensemble_forecasting)). It provides 25 scenarios of the possible weather parameters instead of one for the standard determinist models. 
  
