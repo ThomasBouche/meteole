@@ -57,8 +57,8 @@ Meteole allows you to retrieve forecasts for a wide range of weather indicators.
 | Forecast Range   | Every hour, up to 51 hours | Every hour, up to 51 hours | Every hour, up to 114 hours | Every hour up to 48 hours, then every 3 hours up to 114 hours | Every 15 minutes, up to 360 minutes | Every 5 minutes, up to 195 minutes |
 | Numbers of scenarios   | 1 | 25 | 1 | 35 | 1 | 1 |
 
-The AromePE and ArpegePE models are ensemble models. Instead of making a single forecast of the most likely weather, a set (or ensemble) of forecasts is produced. This set of forecasts aims to give an indication of the range of possible future states of the atmosphere ([from Wikipedia](https://en.wikipedia.org/wiki/Ensemble_forecasting)). It provides several scenarios of the possible weather parameters instead of one for the standard determinist models. 
- 
+The AromePE and ArpegePE models are ensemble models. Instead of making a single forecast of the most likely weather, a set (or ensemble) of forecasts is produced. This set of forecasts aims to give an indication of the range of possible future states of the atmosphere ([from Wikipedia](https://en.wikipedia.org/wiki/Ensemble_forecasting)). It provides several scenarios of the possible weather parameters instead of one for the standard determinist models.
+
 *note : the date of the run cannot be more than 4 days in the past. Consequently, change the date of the run in the example below.*
 
 ```python
