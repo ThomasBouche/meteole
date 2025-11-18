@@ -8,8 +8,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ### Features
 
-* Support for Météo-France ensemble model `PE-ARPEGE` (#38)
-* Support for Météo-France ensemble model `PE-AROME` (#38)
+* Support for Météo-France ensemble model `PE-ARPEGE` and `PE-AROME` (#38)
 
 ## [0.2.1] - August, 2025
 
