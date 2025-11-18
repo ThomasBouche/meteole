@@ -557,6 +557,17 @@ class WeatherForecast(ABC):
 
         df: pd.DataFrame = self._grib_bytes_to_df(grib_binary, temp_dir=temp_dir)
 
+        if self.MODEL_NAME == "pearpege":
+            # for unclear reasons, the pearpege API does not accept lat, long
+            # parameters unlike the other models API.
+            # So we retrieve all the domain and then filter the results
+            # for the desired lat, long in _get_data_single_forecast
+            df = df.loc[
+                (df["latitude"] <= lat[1])
+                & (df["latitude"] >= lat[0])
+                & (df["longitude"] <= long[1])
+                & (df["longitude"] >= long[0])
+            ]
         # Drop and rename columns
         df.drop(columns=["surface", "valid_time"], errors="ignore", inplace=True)
         df.rename(
@@ -647,19 +658,33 @@ class WeatherForecast(ABC):
         else:
             url = f"{self._model_base_path}/{self._entry_point.replace('xxx', f'{ensemble_number:03}')}/GetCoverage"
 
-        params = {
-            "service": "WCS",
-            "version": "2.0.1",
-            "coverageid": coverage_id,
-            "format": "application/wmo-grib",
-            "subset": [
+        if self.MODEL_NAME == "pearpege":
+            # for unclear reasons, the pearpege API does not accept lat, long
+            # parameters unlike the other models API.
+            # So we retrieve all the domain and then filter the results
+            # for the desired lat, long in _get_data_single_forecast
+            subset = [
+                *([f"pressure({pressure})"] if pressure is not None else []),
+                *([f"height({height})"] if height is not None else []),
+                f"time({forecast_horizon_in_seconds})",
+            ]
+        else:
+            subset = [
                 *([f"pressure({pressure})"] if pressure is not None else []),
                 *([f"height({height})"] if height is not None else []),
                 f"time({forecast_horizon_in_seconds})",
                 f"lat({lat[0]},{lat[1]})",
                 f"long({long[0]},{long[1]})",
-            ],
+            ]
+
+        params = {
+            "service": "WCS",
+            "version": "2.0.1",
+            "coverageid": coverage_id,
+            "format": "application/wmo-grib",
+            "subset": subset,
         }
+
         response = self._client.get(url, params=params)
 
         return response.content
