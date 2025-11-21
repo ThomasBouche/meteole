@@ -57,12 +57,20 @@ class WeatherForecast(ABC):
     CLIENT_CLASS: type[BaseClient]
 
     @property
-    def INDICATORS(self) -> list[str]:
+    def indicators(self) -> list[str]:
+        """Computes the list of all indicators from self.capabilities
+
+        Returns: List of all indicators
+        """
         return self.capabilities["indicator"].unique().tolist()
 
     @property
-    def INSTANT_INDICATORS(self) -> list[str]:
-        return self.capabilities[self.capabilities["interval"] == '']["indicator"].unique().tolist()
+    def instant_indicators(self) -> list[str]:
+        """Computes the list of instant indicators from self.capabilities
+
+        Returns: List of instant indicators
+        """
+        return self.capabilities[self.capabilities["interval"] == ""]["indicator"].unique().tolist()
 
     def __init__(
         self,
@@ -322,8 +330,8 @@ class WeatherForecast(ABC):
         """
         capabilities = self.capabilities[self.capabilities["indicator"] == indicator]
 
-        if indicator not in self.INDICATORS:
-            raise ValueError(f"Unknown `indicator` - checkout `{self.MODEL_NAME}.INDICATORS` to have the full list.")
+        if indicator not in self.indicators:
+            raise ValueError(f"Unknown `indicator` - checkout `{self.MODEL_NAME}.indicators` to have the full list.")
 
         if run is None:
             run = capabilities.run.max()
@@ -341,7 +349,7 @@ class WeatherForecast(ABC):
         # handle interval
         valid_intervals = capabilities["interval"].unique().tolist()
 
-        if indicator in self.INSTANT_INDICATORS:
+        if indicator in self.instant_indicators:
             if not interval:
                 # no interval is expected for instant indicators
                 pass

@@ -8,9 +8,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ### Bugs
 
-* INDICATORS and INSTANT_INDICATORS attributes of WeatherForecast object where not always in sync with 
+* INDICATORS and INSTANT_INDICATORS attributes of WeatherForecast object where not always in sync with
   the actual capabilities. Changed these attributes to properties that compute these lists dynamically
-  from the capabilities attribute. See issue #54.
+  from the capabilities attribute. Changed their name to lowercase, since they are not constants anymore.
+  See issue #54.
 
 ## [0.2.2] - November, 2025
 
