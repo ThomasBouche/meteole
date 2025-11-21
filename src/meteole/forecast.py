@@ -52,11 +52,17 @@ class WeatherForecast(ABC):
     BASE_ENTRY_POINT: str = "Defined in subclass"
     MODEL_TYPE: str = "Defined in subclass"
     ENSEMBLE_NUMBERS: int = 1
-    INDICATORS: list[str] = []
-    INSTANT_INDICATORS: list[str] = []
     DEFAULT_TERRITORY: str = "FRANCE"
     DEFAULT_PRECISION: float = 0.01
     CLIENT_CLASS: type[BaseClient]
+
+    @property
+    def INDICATORS(self) -> list[str]:
+        return self.capabilities["indicator"].unique().tolist()
+
+    @property
+    def INSTANT_INDICATORS(self) -> list[str]:
+        return self.capabilities[self.capabilities["interval"] == '']["indicator"].unique().tolist()
 
     def __init__(
         self,
