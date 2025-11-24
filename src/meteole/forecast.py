@@ -10,6 +10,7 @@ from abc import ABC, abstractmethod
 from functools import reduce
 from importlib.util import find_spec
 from typing import Any
+from warnings import warn
 
 import pandas as pd
 import xarray as xr
@@ -71,6 +72,32 @@ class WeatherForecast(ABC):
         Returns: List of instant indicators
         """
         return self.capabilities[self.capabilities["interval"] == ""]["indicator"].unique().tolist()
+
+    @property
+    def INDICATORS(self) -> list[str]:
+        """Deprecated, will be removed in a future version, use indicators instead
+
+        Returns: List of all indicators
+        """
+        warn(
+            ("Deprecated, will be removed in a future version, use indicators instead"),
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        return self.indicators
+
+    @property
+    def INSTANT_INDICATORS(self) -> list[str]:
+        """Deprecated, will be removed in a future version, use instant_indicators instead
+
+        Returns: List of instant indicators
+        """
+        warn(
+            ("Deprecated, will be removed in a future version, use instant_indicators instead"),
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        return self.instant_indicators
 
     def __init__(
         self,
