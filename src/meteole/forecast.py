@@ -57,6 +57,46 @@ class WeatherForecast(ABC):
     DEFAULT_PRECISION: float = 0.01
     CLIENT_CLASS: type[BaseClient]
 
+    def __init__(
+        self,
+        client: BaseClient | None = None,
+        *,
+        territory: str = DEFAULT_TERRITORY,
+        precision: float = DEFAULT_PRECISION,
+        **kwargs: Any,
+    ):
+        """Initialize attributes.
+
+        Args:
+            territory: The ARPEGE territory to fetch.
+            api_key: The API key for authentication. Defaults to None.
+            token: The API token for authentication. Defaults to None.
+            application_id: The Application ID for authentication. Defaults to None.
+        """
+
+        self.territory = territory  # "FRANCE", "ANTIL", or others (see API doc)
+        self.precision = precision
+        self._validate_parameters()
+
+        self._capabilities: pd.DataFrame | None = None
+        self._entry_point: str
+
+        if self.MODEL_TYPE == "ENSEMBLE":
+            self._entry_point = (
+                f"{self.BASE_ENTRY_POINT}xxx-{self.PRECISION_FLOAT_TO_STR[self.precision]}-{self.territory}-WCS"
+            )
+        else:
+            self._entry_point = (
+                f"{self.BASE_ENTRY_POINT}-{self.PRECISION_FLOAT_TO_STR[self.precision]}-{self.territory}-WCS"
+            )
+        self._model_base_path = self.MODEL_NAME + "/" + self.API_VERSION
+
+        if client is not None:
+            self._client = client
+        else:
+            # Try to instantiate it (can be user friendly)
+            self._client = self.CLIENT_CLASS(**kwargs)
+
     @property
     def indicators(self) -> list[str]:
         """Computes the list of all indicators from self.capabilities
@@ -98,46 +138,6 @@ class WeatherForecast(ABC):
             stacklevel=2,
         )
         return self.instant_indicators
-
-    def __init__(
-        self,
-        client: BaseClient | None = None,
-        *,
-        territory: str = DEFAULT_TERRITORY,
-        precision: float = DEFAULT_PRECISION,
-        **kwargs: Any,
-    ):
-        """Initialize attributes.
-
-        Args:
-            territory: The ARPEGE territory to fetch.
-            api_key: The API key for authentication. Defaults to None.
-            token: The API token for authentication. Defaults to None.
-            application_id: The Application ID for authentication. Defaults to None.
-        """
-
-        self.territory = territory  # "FRANCE", "ANTIL", or others (see API doc)
-        self.precision = precision
-        self._validate_parameters()
-
-        self._capabilities: pd.DataFrame | None = None
-        self._entry_point: str
-
-        if self.MODEL_TYPE == "ENSEMBLE":
-            self._entry_point = (
-                f"{self.BASE_ENTRY_POINT}xxx-{self.PRECISION_FLOAT_TO_STR[self.precision]}-{self.territory}-WCS"
-            )
-        else:
-            self._entry_point = (
-                f"{self.BASE_ENTRY_POINT}-{self.PRECISION_FLOAT_TO_STR[self.precision]}-{self.territory}-WCS"
-            )
-        self._model_base_path = self.MODEL_NAME + "/" + self.API_VERSION
-
-        if client is not None:
-            self._client = client
-        else:
-            # Try to instantiate it (can be user friendly)
-            self._client = self.CLIENT_CLASS(**kwargs)
 
     @property
     def capabilities(self) -> pd.DataFrame:
