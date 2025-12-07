@@ -1,4 +1,5 @@
 import unittest
+from unittest import expectedFailure
 from unittest.mock import MagicMock, patch
 import datetime as dt
 import pandas as pd
@@ -140,6 +141,7 @@ class TestAromeForecast(unittest.TestCase):
             </wcs:CoverageDescription>
             </wcs:CoverageDescriptions>
         """
+
         mock_get_request.return_value = mock_response
         mock_get_capabilities.return_value = None
 
@@ -223,65 +225,6 @@ class TestAromeForecast(unittest.TestCase):
             for c, exp in zip(coords, expected_coords):
                 self.assertEqual(forecast.compute_closest_grid_point(c), exp)
 
-    @patch("meteole._arome.AromeForecast.compute_closest_grid_point")
-    @patch("meteole._arome.AromeForecast.get_coverage")
-    def test_get_coverage_at(self, mock_get_coverage, mock_compute_closest_grid_point):
-        mock_compute_closest_grid_point.side_effect = lambda x: round(x, 2)
-        
-        coverage_value = pd.DataFrame(
-            {
-                "latitude": [45.01, 45.01, 45.01],
-                "longitude": [3.26, 3.26, 3.26],
-                "run": ["2024-12-13T00.00.00Z", "2024-12-13T00.00.00Z", "2024-12-13T00.00.00Z"],
-                "forecast_horizon": [dt.timedelta(hours=0), dt.timedelta(hours=1), dt.timedelta(hours=2)],
-                "data": [19, 20, 21],  # this column name varies depending on the coverage_id
-            }
-        )
-        
-        mock_get_coverage.return_value = coverage_value
-
-        forecast = AromeForecast(
-            self.client,
-            precision=self.precision,
-            territory=self.territory,
-        )
-
-        coverage = forecast.get_coverage_at(
-            indicator="toto",
-            lat=45.00985,
-            long=3.2623,
-            any_kwarg = 'any_value'
-        )
-        assert coverage is mock_get_coverage.return_value
-        assert mock_compute_closest_grid_point.call_count == 2
-        mock_compute_closest_grid_point.assert_any_call(45.00985)
-        mock_compute_closest_grid_point.assert_any_call(3.2623)
-
-        mock_get_coverage.assert_called_with("toto",
-                                             (45.01,45.01),
-                                             (3.26,3.26),
-                                             any_kwarg='any_value')
-
-        with pytest.raises(ValueError):
-            err_value = coverage_value.copy()
-            err_value.latitude.iloc[0] = 46.02  # simulate different lat in returned coverage
-            mock_get_coverage.return_value = err_value
-            forecast.get_coverage_at(
-                indicator="toto",
-                lat=45.00985,
-                long=3.2623
-            )
-            
-        with pytest.raises(ValueError):
-            err_value = coverage_value.copy()
-            err_value.longitude.iloc[0] = 3.25  # simulate different long in returned coverage
-            mock_get_coverage.return_value = err_value
-            forecast.get_coverage_at(
-                indicator="toto",
-                lat=45.00985,
-                long=3.2623
-            )
-
     @patch("meteole._arome.AromeForecast.get_coverage_description")
     @patch("meteole._arome.AromeForecast.get_capabilities")
     @patch("meteole._arome.AromeForecast._get_data_single_forecast")
@@ -326,6 +269,50 @@ class TestAromeForecast(unittest.TestCase):
             long=(-12, 16),
             temp_dir=None,
         )
+
+    @patch("meteole._arome.AromeForecast.get_coverage_description")
+    @patch("meteole._arome.AromeForecast.get_capabilities")
+    @patch("meteole._arome.AromeForecast._get_data_single_forecast")
+    def test_get_coverage_lat_lon(self, mock_get_data_single_forecast, mock_get_capabilities, mock_get_coverage_description):
+        """ Tests the different ways that a user can provide lat and long to get_coverage (float and tuple) """
+        mock_get_data_single_forecast.return_value = pd.DataFrame(
+            {
+                "latitude": [1, 2, 3],
+                "longitude": [4, 5, 6],
+                "time": [7, 8, 9],
+                "step": [10, 11, 12],
+                "valid_time": [16, 17, 18],
+                "data": [19, 20, 21],  # this column name varies depending on the coverage_id
+            }
+        )
+        mock_get_coverage_description.return_value = {
+            "heights": [],
+            "forecast_horizons": [dt.timedelta(hours=0)],
+            "pressures": [],
+        }
+
+        forecast = AromeForecast(
+            self.client,
+            precision=0.01,
+            territory=self.territory,
+        )
+
+        for lat, expected_lat in zip((37.5689, (37.5689, 45.00986)),
+                                     ((37.57,37.57), (37.57, 45.01))):
+            for long, expected_long in zip((2.568, (-1.566, 2.568)),
+                                         ((2.57, 2.57), (-1.57, 2.57))):
+
+                forecast.get_coverage(coverage_id="toto", lat=lat, long=long)
+                mock_get_data_single_forecast.assert_called_once_with(
+                    coverage_id="toto",
+                    ensemble_number=None,
+                    height= None,
+                    pressure=None,
+                    forecast_horizon=dt.timedelta(hours=0),
+                    lat=expected_lat,
+                    long=expected_long,
+                    temp_dir=None)
+                mock_get_data_single_forecast.reset_mock()
 
     @patch("meteole._arome.AromeForecast.get_coverage_description")
     def test_get_forecast_horizons(self, mock_get_coverage_description):
