@@ -4,6 +4,14 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.4] - November, 2025
+### Features
+* Added a get_coverage_at method to WeatherForecast for a specific point (latitude, longitude) instead of a geographical
+  area (#53)
+* Added a compute_cloest_grid_point method to WeatherForecast to find the closest grid point
+  to a given latitude and longitude (#53)
+* Updated documentation with examples of get_coverage_at and compute_closest_grid_point (#53)
+
 ## [0.2.3] - November, 2025
 
 ### Bugs

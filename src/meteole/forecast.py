@@ -55,6 +55,7 @@ class WeatherForecast(ABC):
     ENSEMBLE_NUMBERS: int = 1
     DEFAULT_TERRITORY: str = "FRANCE"
     DEFAULT_PRECISION: float = 0.01
+    MAX_DECIMAL_PLACES: int = 4 # used to avoid floating point issues when finding the closest grid point
     CLIENT_CLASS: type[BaseClient]
 
     def __init__(
@@ -288,6 +289,43 @@ class WeatherForecast(ABC):
         ]
 
         return pd.concat(df_list, axis=0).reset_index(drop=True)
+
+    def compute_closest_grid_point(self, coord: float) -> float:
+        """ Returns the coordinate of the closest grid point """
+
+        # The grid points are regularly spaced at intervals of 'precision'
+        coord_grid = round(coord / self.precision)* self.precision
+        coord_grid = round(coord_grid,self.MAX_DECIMAL_PLACES) # avoid floating point issues
+        return coord_grid
+
+    def get_coverage_at(
+        self,
+        indicator: str | None = None,
+        lat: float = sum(FRANCE_METRO_LATITUDES)/2,
+        long: float = sum(FRANCE_METRO_LONGITUDES)/2,
+        **kwargs) -> pd.DataFrame:
+        """ Return the coverage data (i.e., the weather forecast data) at one specific location.
+            More specifically, requests the forcast at the closest grid point to the requested lat,long.
+
+        Args are exactly the same as in `get_coverage`, except for lat and long which are floats here.
+
+        Returns:
+            pd.DataFrame: The complete run for the specified execution.
+        """
+        # We first find the closest grid point
+        lat, long = self.compute_closest_grid_point(lat), self.compute_closest_grid_point(long)
+        logger.info(f"Using `lat={lat} (closest to the requested {lat})`")
+        logger.info(f"Using `long={long} (closest to the requested {long})`")
+
+        lat = (lat, lat)
+        long=(long, long)
+
+        coverage = self.get_coverage(indicator, lat, long, **kwargs)
+
+        if not coverage.latitude.eq(lat[0]).all() or not coverage.longitude.eq(long[0]).all():
+            raise ValueError("The retrieved coverage does not correspond to the requested lat,long")
+
+        return coverage
 
     def _build_capabilities(self) -> pd.DataFrame:
         """(Protected)
