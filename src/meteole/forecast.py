@@ -55,7 +55,7 @@ class WeatherForecast(ABC):
     ENSEMBLE_NUMBERS: int = 1
     DEFAULT_TERRITORY: str = "FRANCE"
     DEFAULT_PRECISION: float = 0.01
-    MAX_DECIMAL_PLACES: int = 4 # used to avoid floating point issues when finding the closest grid point
+    MAX_DECIMAL_PLACES: int = 4  # used to avoid floating point issues when finding the closest grid point
     CLIENT_CLASS: type[BaseClient]
 
     def __init__(
@@ -209,9 +209,10 @@ class WeatherForecast(ABC):
 
             # Find min and max latitude and longitude
             envelope = description["wcs:CoverageDescriptions"]["wcs:CoverageDescription"]["gml:boundedBy"][
-                "gml:EnvelopeWithTimePeriod"]
-            lower = envelope["gml:lowerCorner"] # '-12 37.5'
-            upper = envelope["gml:upperCorner"] # '16 55.4'
+                "gml:EnvelopeWithTimePeriod"
+            ]
+            lower = envelope["gml:lowerCorner"]  # '-12 37.5'
+            upper = envelope["gml:upperCorner"]  # '16 55.4'
             lower_long, lower_lat = [float(val) for val in lower.split()]
             upper_long, upper_lat = [float(val) for val in upper.split()]
             coverage_description_single["min_latitude"] = lower_lat
@@ -280,7 +281,7 @@ class WeatherForecast(ABC):
 
         # Handle lat,long inputs (needs axis to check bounds)
         user_lat, user_long = lat, long
-        lat, long = self._check_lat_long(lat, long, axis)
+        lat, long = self._check_coords(lat, long, axis)
         logger.info(f"Using `lat={lat} (user input: {user_lat})`")
         logger.info(f"Using `long={long} (user input: {user_long})`")
 
@@ -289,7 +290,6 @@ class WeatherForecast(ABC):
         forecast_horizons = self._raise_if_invalid_or_fetch_default(
             "forecast_horizons", forecast_horizons, axis["forecast_horizons"]
         )
-
 
         df_list = [
             self._get_data_single_forecast(
@@ -310,20 +310,21 @@ class WeatherForecast(ABC):
 
         return pd.concat(df_list, axis=0).reset_index(drop=True)
 
-    def _check_lat_long(self, lat: float | tuple[float, float], long: float | tuple[float, float],
-                        axis: dict[str: Any]) -> tuple[tuple[float, float], tuple[float, float]]:
-        try:
-            min_lat, max_lat = lat
-        except TypeError:
+    def _check_coords(
+        self, lat: float | tuple[float, float], long: float | tuple[float, float], axis: dict[str, Any]
+    ) -> tuple[tuple[float, float], tuple[float, float]]:
+        if isinstance(lat, (int | float)):
             min_lat, max_lat = lat, lat
-        try:
-            min_long, max_long = long
-        except TypeError:
+        else:
+            min_lat, max_lat = lat
+        if isinstance(long, (int | float)):
             min_long, max_long = long, long
+        else:
+            min_long, max_long = long
         min_long, max_long = self._compute_closest_grid_point(min_long), self._compute_closest_grid_point(max_long)
         min_lat, max_lat = self._compute_closest_grid_point(min_lat), self._compute_closest_grid_point(max_lat)
         if min_lat < axis["min_latitude"]:
-            raise ValueError(f"Lower latitude is out of bounds (muwt be >= {axis['min_latitude']}).")
+            raise ValueError(f"Lower latitude is out of bounds (must be >= {axis['min_latitude']}).")
         if max_lat > axis["max_latitude"]:
             raise ValueError(f"Upper latitude is out of bounds (must be <= {axis['max_latitude']}).")
         if min_long < axis["min_longitude"]:
@@ -333,11 +334,11 @@ class WeatherForecast(ABC):
         return (min_lat, max_lat), (min_long, max_long)
 
     def _compute_closest_grid_point(self, coord: float) -> float:
-        """ Returns the coordinate of the closest grid point """
+        """Returns the coordinate of the closest grid point"""
 
         # The grid points are regularly spaced at intervals of 'precision'
-        coord_grid = round(coord / self.precision)* self.precision
-        coord_grid = round(coord_grid,self.MAX_DECIMAL_PLACES) # avoid floating point issues
+        coord_grid = round(coord / self.precision) * self.precision
+        coord_grid = round(coord_grid, self.MAX_DECIMAL_PLACES)  # avoid floating point issues
         return coord_grid
 
     def _build_capabilities(self) -> pd.DataFrame:
