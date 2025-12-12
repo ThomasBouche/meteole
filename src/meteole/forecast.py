@@ -313,11 +313,11 @@ class WeatherForecast(ABC):
     def _check_coords(
         self, lat: float | tuple[float, float], long: float | tuple[float, float], axis: dict[str, Any]
     ) -> tuple[tuple[float, float], tuple[float, float]]:
-        if isinstance(lat, (int | float)):
+        if isinstance(lat, (int, float)):
             min_lat, max_lat = lat, lat
         else:
             min_lat, max_lat = lat
-        if isinstance(long, (int | float)):
+        if isinstance(long, (int, float)):
             min_long, max_long = long, long
         else:
             min_long, max_long = long
