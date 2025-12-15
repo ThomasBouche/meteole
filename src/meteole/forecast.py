@@ -281,7 +281,7 @@ class WeatherForecast(ABC):
 
         # Handle lat,long inputs (needs axis to check bounds)
         user_lat, user_long = lat, long
-        lat, long = self._check_coords(lat, long, axis)
+        lat, long = self._check_and_format_coords(lat, long, axis)
         logger.info(f"Using `lat={lat} (user input: {user_lat})`")
         logger.info(f"Using `long={long} (user input: {user_long})`")
 
@@ -310,9 +310,21 @@ class WeatherForecast(ABC):
 
         return pd.concat(df_list, axis=0).reset_index(drop=True)
 
-    def _check_coords(
+    def _check_and_format_coords(
         self, lat: float | tuple[float, float], long: float | tuple[float, float], axis: dict[str, Any]
     ) -> tuple[tuple[float, float], tuple[float, float]]:
+        """Formats lat, long arguments passed to get_coverage:
+            - Rounds all coordinates to the closest grid point
+            - If a single float is passed, converts it to a tuple (value,value)
+
+        Args:
+            lat, long : tuple (min,max) or float.
+            lat (long): Minimum and maximum latitude (longitude), or latitude (longitude) of the desired location.
+                    The closest grid point to the requested coordinate will be used.
+
+        Returns:
+            formatted coordinates: (min_lat, max_lat), (min_long, max_long)
+        """
         if isinstance(lat, (int, float)):
             min_lat, max_lat = lat, lat
         else:
