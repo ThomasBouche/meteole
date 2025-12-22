@@ -4,6 +4,11 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.5] - December, 2025
+### Features
+* Added the ability to retrieve observations from the API
+* Updated tests and documentation to reflect these additions
+
 ## [0.2.4] - December, 2025
 ### Features
 * Added a way to call the get_coverage method of WeatherForecast with floats for lat, long (instead of tuples only)
