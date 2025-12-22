@@ -10,6 +10,11 @@ Depending on the indicators, the geographic boundary envelope of the indicators 
 The current code does not take this into account.
 See PR #62
 
+## [0.2.5] - December, 2025
+### Features
+* Added the ability to retrieve observations from the API
+* Updated tests and documentation to reflect these additions
+
 ## [0.2.4] - December, 2025
 ### Features
 * Added a way to call the get_coverage method of WeatherForecast with floats for lat, long (instead of tuples only)
