@@ -213,8 +213,23 @@ class WeatherForecast(ABC):
             ]
             lower = envelope["gml:lowerCorner"]  # '-12 37.5'
             upper = envelope["gml:upperCorner"]  # '16 55.4'
-            lower_long, lower_lat = [float(val) for val in lower.split()]
-            upper_long, upper_lat = [float(val) for val in upper.split()]
+            lower_vals = [float(val) for val in lower.split()]
+            upper_vals = [float(val) for val in upper.split()]
+
+            axis_labels = envelope.get("@axisLabels")
+            if axis_labels and "long" in axis_labels and "lat" in axis_labels:
+                labels = axis_labels.split()
+                idx_long = labels.index("long")
+                idx_lat = labels.index("lat")
+
+                lower_long = lower_vals[idx_long]
+                lower_lat = lower_vals[idx_lat]
+                upper_long = upper_vals[idx_long]
+                upper_lat = upper_vals[idx_lat]
+            else:
+                lower_long, lower_lat = lower_vals[:2]
+                upper_long, upper_lat = upper_vals[:2]
+
             coverage_description_single["min_latitude"] = lower_lat
             coverage_description_single["max_latitude"] = upper_lat
             coverage_description_single["min_longitude"] = lower_long
