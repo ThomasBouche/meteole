@@ -360,11 +360,11 @@ class WeatherObservation(ABC):
             end = self._format_datetime(end)
 
         # order data and retrieve order ID
-        order_id = self._order_data(station_id, start, end)
+        self._order_id = self._order_data(station_id, start, end)
 
         # file is typically ready after a few seconds
         time.sleep(wait_for_file)
-        file_content = self._retrieve_file(order_id=order_id)
+        file_content = self._retrieve_file(order_id=self._order_id)
         return pd.read_csv(StringIO(file_content), delimiter=";", decimal=",")
 
     def _order_data(self, station_id: str, start: str, end: str) -> str:
