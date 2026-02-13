@@ -33,14 +33,11 @@ import pandas as pd
 
 from meteole.clients import BaseClient
 
-#########################################################
-# Duplication from forecast.py: move to a common place ?
 if find_spec("cfgrib") is None:
     raise ImportError(
         "The 'cfgrib' module is required to read Arome and Arpege GRIB files. Please install it using:\n\n"
         "  conda install -c conda-forge cfgrib\n\n"
     )
-#########################################################
 logger = logging.getLogger(__name__)
 
 NEIGHBOURS = {
@@ -155,7 +152,10 @@ NEIGHBOURS = {
 
 
 def _format_departement(departement: int | str) -> str:
-    """Formats a departement given as an int or a str into the proper two-character code"""
+    """Formats a departement given as an int or a str into the proper two-character code
+
+    ex: "01" -> "01", 1 -> "01", "1" -> "01", "unknown" -> ValueError
+    """
     if isinstance(departement, float):
         raise ValueError("Invalid type (float) for departement, give it as str or int")
     if isinstance(departement, str) and len(departement) == 1:
@@ -168,6 +168,17 @@ def _format_departement(departement: int | str) -> str:
 
 
 def _distance_from_coords(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
+    """
+    Computes the distance between two coordinates
+
+    Args:
+        lat1, lon1 (float): lat, lon of first point
+        lat2, lon2 (float): lat, lon of second point
+
+    Returns:
+        float: distance (in km) between points.
+    """
+
     lat1, lon1 = radians(lat1), radians(lon1)
     lat2, lon2 = radians(lat2), radians(lon2)
     return 6371.01 * acos(sin(lat1) * sin(lat2) + cos(lat1) * cos(lat2) * cos(lon1 - lon2))
@@ -187,9 +198,6 @@ def sort_stations_by_distance(lat: float, lon: float, stations: list[dict[str, A
 class WeatherObservation(ABC):
     """(Abstract)
     Base class for weather observation models.
-
-    Note: Currently, this class is highly related to Meteo-France models.
-    This will not be the case in the future.
 
     Attributes:
         frequency: frequency of the observation ('6m','hourly', 'daily', 'decade', 'monthly')
@@ -222,13 +230,13 @@ class WeatherObservation(ABC):
         """Initialize attributes.
 
         Args:
-            territory: The ARPEGE territory to fetch.
+            frequency: the observation frequency: '6m','hourly', 'daily', 'decade', 'monthly'
             api_key: The API key for authentication. Defaults to None.
             token: The API token for authentication. Defaults to None.
             application_id: The Application ID for authentication. Defaults to None.
         """
 
-        self.frequency = frequency  # '6m','hourly', 'daily', 'decade', 'monthly'
+        self.frequency = frequency
         self._validate_parameters()
 
         self._entry_point = f"{self.BASE_ENTRY_POINT}/{self.API_VERSION}"
@@ -239,14 +247,11 @@ class WeatherObservation(ABC):
         # Stations info are fetched and stored by station_id
         self._stations_info: dict[str, Any] = {}
 
-        #############################################################################
-        # duplicated code from forecast.py: move to a common place ?
         if client is not None:
             self._client = client
         else:
             # Try to instantiate it (can be user friendly)
             self._client = self.CLIENT_CLASS(**kwargs)
-        ############################################################################
 
     @abstractmethod
     def _validate_parameters(self) -> None:
@@ -260,7 +265,15 @@ class WeatherObservation(ABC):
         add_neighbours: bool = True,
         open_only: bool = True,
     ) -> list[dict[str, Any]]:
-        """Returns a list of station for a given departement
+        """
+        Returns a list of station for a given departement.
+
+        Typically, one needs the closest or the N closest stations to a given point. When lat, lon parameters are
+        specified, the results are sorted by distance to that point, with the closest station first in the list.
+
+        In the same vein, setting add_neighbours to True adds stations from neighbouring departements. This is useful
+        when looking for stations close to the border of a departement.
+
         Args:
             departement: departement number (int or str)
             add_neighbours: bool (default True), whether to add stations from bordering departements

@@ -6,7 +6,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## [0.2.6] - February, 2026
 ### Features
-* Added the ability to retrieve observations from the API
+* Added the ability to retrieve observations from a single station at a time.
 * Updated tests and documentation to reflect these additions
 See #21
 
