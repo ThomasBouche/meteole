@@ -62,8 +62,8 @@ class WeatherForecast(ABC):
         self,
         client: BaseClient | None = None,
         *,
-        territory: str = DEFAULT_TERRITORY,
-        precision: float = DEFAULT_PRECISION,
+        territory: str | None = None,
+        precision: float | None = None,
         **kwargs: Any,
     ):
         """Initialize attributes.
@@ -75,8 +75,8 @@ class WeatherForecast(ABC):
             application_id: The Application ID for authentication. Defaults to None.
         """
 
-        self.territory = territory  # "FRANCE", "ANTIL", or others (see API doc)
-        self.precision = precision
+        self.territory = territory or type(self).DEFAULT_TERRITORY  # "FRANCE", "ANTIL", or others (see API doc)
+        self.precision = precision or type(self).DEFAULT_PRECISION
         self._validate_parameters()
 
         self._capabilities: pd.DataFrame | None = None
@@ -806,7 +806,7 @@ class WeatherForecast(ABC):
                 *([f"height({height})"] if height is not None else []),
                 f"time({forecast_horizon_in_seconds})",
                 f"lat({lat[0]},{lat[1]})",
-                f"lon({lon[0]},{lon[1]})",
+                f"long({lon[0]},{lon[1]})",
             ]
 
         params = {

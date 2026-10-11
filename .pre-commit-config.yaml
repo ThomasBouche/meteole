@@ -43,6 +43,7 @@ repos:
     rev: v2.9.0
     hooks:
       - id: pip-audit
+        language_version: python3.12
         args: [.]
   - repo: https://github.com/compilerla/conventional-pre-commit
     rev: v4.3.0

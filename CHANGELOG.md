@@ -4,6 +4,13 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.7] - October, 2026
+### Features
+* Added support for AROME-IFS model. See #73
+* Added support for Python 3.14 / remove 3.9, 3.10. See #75
+### Bugs
+* Changed the subset parameter longitude from "lon" to "long" to fix an error raised when using get_coverage. See #72
+
 ## [0.2.6] - February, 2026
 ### Features
 * Added the ability to retrieve observations from a single station at a time.
