@@ -7,6 +7,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 ## [0.2.7] - October, 2026
 ### Features
 * Added support for AROME-IFS model. See #73
+* Added support for Python 3.14 / remove 3.9, 3.10. See #75
 ### Bugs
 * Changed the subset parameter longitude from "lon" to "long" to fix an error raised when using get_coverage. See #72
 
